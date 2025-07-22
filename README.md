@@ -1,5 +1,5 @@
 
-#strawk: STRuctured AWK
+# strawk: STRuctured AWK
 
 An AWK implementation using Structural Regular Expressions rather than processing things line-by-line
 
