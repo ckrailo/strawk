@@ -136,12 +136,13 @@ func (l *Lexer) NextToken() token.Token {
 		l.readChar()
 		tok = l.newToken(token.STRING, l.readUntilChar('`'))
 	case '-':
-		l.readChar()
-		if l.ch == '-' && l.peek(1) == ">" {
+		lookahead := l.peek(1)
+		if lookahead == "=" {
 			l.readChar()
-			tok = l.newToken(token.RESET, "-->")
-		} else if l.ch == '>' {
-			tok = l.newToken(token.GOTO, "->")
+			tok = l.newToken(token.ASSIGNPLUS, "-=")
+		} else if lookahead == "-" {
+			l.readChar()
+			tok = l.newToken(token.DECREMENT, "--")
 		} else {
 			tok = l.newToken(token.MINUS, "-")
 		}
@@ -170,7 +171,7 @@ func (l *Lexer) NextToken() token.Token {
 		lookahead := l.peek(1)
 		if lookahead == "=" {
 			l.readChar()
-			tok = l.newToken(token.ASSIGNPLUS, "+")
+			tok = l.newToken(token.ASSIGNPLUS, "+=")
 		} else if lookahead == "+" {
 			l.readChar()
 			tok = l.newToken(token.INCREMENT, "++")

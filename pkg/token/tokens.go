@@ -36,6 +36,7 @@ const (
 	PLUS       = "+"
 	INCREMENT  = "++"
 	MINUS      = "-"
+	DECREMENT  = "--"
 	BANG       = "!"
 	ASTERISK   = "*"
 	SLASH      = "/"

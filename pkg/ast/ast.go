@@ -228,7 +228,7 @@ func (pe *PrefixExpression) String() string {
 
 type PostfixExpression struct {
 	Token    token.Token
-	Left     Expression
+	Left     *Identifier
 	Operator string
 }
 

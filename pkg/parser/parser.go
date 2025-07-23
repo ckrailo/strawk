@@ -57,10 +57,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IDENT, p.parseIdentifierExpr)
 	p.registerPrefix(token.STRING, p.parseStringLiteralExpr)
 	p.registerPrefix(token.SLASH, p.parseRegexExpression)
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 
 	// p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	// p.registerPrefix(token.MINUS, p.parsePrefixExpression)
-	// p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
+	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
 	// p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -269,7 +271,7 @@ func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.Act
 	//If a regex literal by itself, expand to $0 ~ /regex/
 	switch stmt.Conditon.(type) {
 	case *ast.RegexLiteral:
-		stmt.Conditon = &ast.InfixExpression{Left: &ast.Identifier{Value: "$0"}, Operator: "~", Right: stmt.Conditon}
+		stmt.Conditon = &ast.InfixExpression{Left: &ast.Identifier{Value: "$0"}, Operator: "~$0", Right: stmt.Conditon}
 	}
 
 	if !p.curTokenIs(token.LBRACE) {
@@ -354,6 +356,10 @@ func (p *Parser) parseIdentifierExpr() ast.Expression {
 		expr := &ast.PostfixExpression{Left: ident, Operator: p.peekToken.Literal}
 		p.nextToken()
 		return expr
+	} else if p.peekTokenIs(token.DECREMENT) {
+		expr := &ast.PostfixExpression{Left: ident, Operator: p.peekToken.Literal}
+		p.nextToken()
+		return expr
 	}
 	return ident
 }
@@ -411,6 +417,17 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 	exp := &ast.CallExpression{Token: p.curToken, Function: function}
 	p.nextToken()
 	exp.Arguments = p.parseExpressionList(token.RPAREN)
+	p.nextToken()
+	return exp
+}
+
+func (p *Parser) parseGroupedExpression() ast.Expression {
+	p.nextToken()
+	exp := p.parseExpression(LOWEST)
+	if !p.curTokenIs(token.RPAREN) {
+		panic("expected (")
+		// p.addError(fmt.Sprintf("expected ), got %s %s", p.curToken.Type, p.curToken.Literal))
+	}
 	p.nextToken()
 	return exp
 }

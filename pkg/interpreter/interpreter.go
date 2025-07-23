@@ -19,21 +19,21 @@ type Interpreter struct {
 	Input                        string
 	InputPostion                 int
 	Stack                        []CallStackEntry
-	GlobalVariables              map[string]string
+	GlobalVariables              map[string]ast.Expression
 	StdLibFunctions              map[string]func([]ast.Expression) ast.Expression
-	mostRecentRegexCaptureGroups map[string]string
+	mostRecentRegexCaptureGroups map[string]ast.Expression
 }
 
 type CallStackEntry struct {
 	isFunction     bool
-	LocalVariables map[string]string
+	LocalVariables map[string]ast.Expression
 }
 
 func NewInterpreter(program *ast.Program, input string) *Interpreter {
-	i := &Interpreter{Program: program, Input: input, GlobalVariables: make(map[string]string), StdLibFunctions: make(map[string]func([]ast.Expression) ast.Expression)}
+	i := &Interpreter{Program: program, Input: input, GlobalVariables: make(map[string]ast.Expression), StdLibFunctions: make(map[string]func([]ast.Expression) ast.Expression)}
 	i.Stack = append(i.Stack, CallStackEntry{})
-	i.Stack[0].LocalVariables = make(map[string]string)
-	i.Stack[0].LocalVariables["$0"] = ""
+	i.Stack[0].LocalVariables = make(map[string]ast.Expression)
+	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
 	i.InputPostion = 0
 	for _, stmt := range program.Statements {
 		switch stmt.(type) {
@@ -67,19 +67,20 @@ func (i *Interpreter) advanceInput() {
 	if i.InputPostion >= len(i.Input) {
 		return
 	}
-	i.Stack[0].LocalVariables["$0"] += string(i.Input[i.InputPostion])
+	i.Stack[0].LocalVariables["$0"] = i.doConcatenate(i.Stack[0].LocalVariables["$0"], &ast.StringLiteral{Value: string(i.Input[i.InputPostion])})
 }
 
 func (i *Interpreter) backtrackInput() {
 	i.InputPostion -= 1
-	i.Stack[0].LocalVariables["$0"] = i.Stack[0].LocalVariables["$0"][:len(i.Stack[0].LocalVariables["$0"])-1]
+	length := len(i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value)
+	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value[:length-1]}
 }
 
 func (i *Interpreter) consumeInput() {
-	i.Stack[0].LocalVariables["$0"] = ""
+	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
 }
 
-func (i *Interpreter) lookupVar(varName string) string {
+func (i *Interpreter) lookupVar(varName string) ast.Expression {
 	val, ok := i.Stack[len(i.Stack)-1].LocalVariables[varName]
 	if ok {
 		return val
@@ -88,10 +89,10 @@ func (i *Interpreter) lookupVar(varName string) string {
 	if ok {
 		return val
 	}
-	return ""
+	return &ast.StringLiteral{Value: ""}
 }
 
-func (i *Interpreter) setVar(varName string, value string) {
+func (i *Interpreter) setVar(varName string, value ast.Expression) {
 	_, ok := i.Stack[len(i.Stack)-1].LocalVariables[varName]
 	if ok {
 		i.Stack[len(i.Stack)-1].LocalVariables[varName] = value
@@ -100,7 +101,7 @@ func (i *Interpreter) setVar(varName string, value string) {
 	}
 }
 
-func (i *Interpreter) createLocalVar(varName string, value string) {
+func (i *Interpreter) createLocalVar(varName string, value ast.Expression) {
 	i.Stack[len(i.Stack)-1].LocalVariables[varName] = value
 }
 
@@ -122,7 +123,7 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 }
 
 func (i *Interpreter) doBlock(block ast.Block) {
-	i.mostRecentRegexCaptureGroups = make(map[string]string)
+	i.mostRecentRegexCaptureGroups = make(map[string]ast.Expression)
 	shouldExecuteBlock := false
 	switch block.(type) {
 	case *ast.BeginStatement:
@@ -162,7 +163,7 @@ func (i *Interpreter) doPrintStatement(stmt *ast.PrintStatement) {
 
 func (i *Interpreter) doAssignStatement(stmt *ast.AssignStatement) {
 	for idx, target := range stmt.Targets {
-		i.setVar(target.String(), i.doExpression(stmt.Values[idx]).String())
+		i.setVar(target.String(), i.doExpression(stmt.Values[idx]))
 	}
 }
 
@@ -174,8 +175,7 @@ func (i *Interpreter) doAssignAndModifyStatement(stmt *ast.AssignAndModifyStatem
 	default:
 		panic("Unknown Operator.")
 	}
-	i.Stack[len(i.Stack)-1].LocalVariables[stmt.Target.String()] = newValue.String()
-	i.setVar(stmt.Target.String(), newValue.String())
+	i.setVar(stmt.Target.String(), newValue)
 }
 
 func (i *Interpreter) doExpressionList(expressions []ast.Expression) []ast.Expression {
@@ -194,6 +194,8 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 		return i.doFunctionCall(expr.(*ast.CallExpression))
 	case *ast.PostfixExpression:
 		return i.doPostfixExpression(expr.(*ast.PostfixExpression))
+	case *ast.Identifier:
+		return i.lookupVar(expr.(*ast.Identifier).Value)
 	}
 	return expr
 }
@@ -203,34 +205,44 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 	right := i.doExpression(expression.Right)
 	switch expression.Operator {
 	case "~":
-		return i.doRegexMatch(left, right)
+		return i.doRegexMatch(left, right, false)
+	case "~$0":
+		return i.doRegexMatch(left, right, true)
 	case "+":
 		return i.doAdd(left, right)
+	case "-":
+		return i.doMinus(left, right)
 	}
 	return nil
 }
 
-func (i *Interpreter) doPostfixExpression(expression *ast.PostfixExpression) ast.Expression {
-	switch expression.Operator {
+func (i *Interpreter) doPostfixExpression(expr *ast.PostfixExpression) ast.Expression {
+	switch expr.Operator {
 	case "++":
-		value := &ast.StringLiteral{Value: i.lookupVar(expression.Left.String())}
-		i.setVar(expression.Left.String(), i.doExpression(&ast.InfixExpression{Left: expression.Left, Operator: "+", Right: &ast.IntegerLiteral{Value: 1}}).String())
+		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
+		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "+", Right: &ast.IntegerLiteral{Value: 1}}))
+		return value
+	case "--":
+		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
+		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "-", Right: &ast.IntegerLiteral{Value: 1}}))
 		return value
 	default:
 		panic("Unknown postfix operator!")
 	}
 }
 
-func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression) ast.Expression {
+func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, isReadingFromInput bool) ast.Expression {
 	var str string
 	var regex string
-	var isReadingFromInput bool
+	if isReadingFromInput && len(i.Stack) == 1 {
+		isReadingFromInput = true
+	} else {
+		isReadingFromInput = false
+	}
+
 	switch left.(type) {
 	case *ast.Identifier:
-		if left.(*ast.Identifier).Value == "$0" && len(i.Stack) == 1 {
-			isReadingFromInput = true
-		}
-		str = i.lookupVar(left.(*ast.Identifier).Value)
+		str = i.lookupVar(left.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
 		str = (left.(*ast.StringLiteral).Value)
 	default:
@@ -255,13 +267,13 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression) as
 			prevMatches := matches
 			prevMatch := &matches[0]
 			i.advanceInput()
-			newMatches := re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"])
+			newMatches := re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value)
 			newMatch := &newMatches[0]
 			for *prevMatch != *newMatch {
 				i.advanceInput()
 				prevMatches = newMatches
 				prevMatch = newMatch
-				newMatches := re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"])
+				newMatches := re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value)
 				newMatch = &newMatches[0]
 			}
 
@@ -271,7 +283,7 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression) as
 		}
 		for idx, match := range matches {
 			stridx := "$" + strconv.Itoa(idx)
-			i.mostRecentRegexCaptureGroups[stridx] = match
+			i.mostRecentRegexCaptureGroups[stridx] = &ast.StringLiteral{Value: match}
 		}
 		return &ast.Boolean{Value: true}
 	}
@@ -291,17 +303,19 @@ func (i *Interpreter) doAdd(left ast.Expression, right ast.Expression) ast.Expre
 	var l string
 	switch left.(type) {
 	case *ast.Identifier:
-		l = i.lookupVar(left.(*ast.Identifier).Value)
+		l = i.lookupVar(left.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
 		l = (left.(*ast.StringLiteral).Value)
+	case *ast.IntegerLiteral:
+		l = (left.(*ast.IntegerLiteral).String())
 	default:
-		panic("non-string match against regex")
+		panic("error in doAdd")
 	}
 
 	var r string
 	switch right.(type) {
 	case *ast.Identifier:
-		r = i.lookupVar(right.(*ast.Identifier).Value)
+		r = i.lookupVar(right.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
 		r = (right.(*ast.StringLiteral).Value)
 	case *ast.IntegerLiteral:
@@ -318,4 +332,57 @@ func (i *Interpreter) doAdd(left ast.Expression, right ast.Expression) ast.Expre
 		panic("rhs not int")
 	}
 	return &ast.IntegerLiteral{Value: lInt + rInt}
+}
+func (i *Interpreter) doMinus(left ast.Expression, right ast.Expression) ast.Expression {
+	var l string
+	switch left.(type) {
+	case *ast.Identifier:
+		l = i.lookupVar(left.(*ast.Identifier).Value).String()
+	case *ast.StringLiteral:
+		l = (left.(*ast.StringLiteral).Value)
+	default:
+		panic("error in doMinus")
+	}
+
+	var r string
+	switch right.(type) {
+	case *ast.Identifier:
+		r = i.lookupVar(right.(*ast.Identifier).Value).String()
+	case *ast.StringLiteral:
+		r = (right.(*ast.StringLiteral).Value)
+	case *ast.IntegerLiteral:
+		r = (right.(*ast.IntegerLiteral).String())
+	default:
+		r = i.doExpression(right).String()
+	}
+	lInt, ok := strconv.Atoi(l)
+	if ok != nil {
+		panic("lhs not int")
+	}
+	rInt, ok := strconv.Atoi(r)
+	if ok != nil {
+		panic("rhs not int")
+	}
+	return &ast.IntegerLiteral{Value: lInt - rInt}
+}
+
+func (i *Interpreter) doConcatenate(left ast.Expression, right ast.Expression) ast.Expression {
+	var l string
+	var r string
+	left = i.doExpression(left)
+	right = i.doExpression(right)
+	switch left.(type) {
+	case *ast.StringLiteral:
+		l = (left.(*ast.StringLiteral).Value)
+	default:
+		panic("error in doConcatenate")
+	}
+
+	switch right.(type) {
+	case *ast.StringLiteral:
+		r = (right.(*ast.StringLiteral).Value)
+	default:
+		panic("error in doConcatenate")
+	}
+	return &ast.StringLiteral{Value: l + r}
 }
