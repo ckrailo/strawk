@@ -1,8 +1,6 @@
 package stdlib
 
 import (
-	"strconv"
-
 	"github.com/ahalbert/strawk/pkg/ast"
 )
 
@@ -13,6 +11,6 @@ func Length(args []ast.Expression) ast.Expression {
 	}
 
 	arg := args[0].String()
-	ret := len(arg)
-	return &ast.StringLiteral{Value: strconv.Itoa(ret)}
+	ret := float64(len(arg))
+	return &ast.NumericLiteral{Value: ret}
 }

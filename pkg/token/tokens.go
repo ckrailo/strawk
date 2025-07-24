@@ -17,6 +17,7 @@ const (
 	IDENT      = "IDENT"
 	REGEX      = "REGEX"
 	STRING     = "STRING"
+	NUMBER     = "NUMBER"
 	WHITESPACE = "WHITESPACE"
 	COMMENT    = "COMMENT"
 

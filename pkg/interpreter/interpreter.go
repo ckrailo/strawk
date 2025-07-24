@@ -220,11 +220,11 @@ func (i *Interpreter) doPostfixExpression(expr *ast.PostfixExpression) ast.Expre
 	switch expr.Operator {
 	case "++":
 		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
-		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "+", Right: &ast.IntegerLiteral{Value: 1}}))
+		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "+", Right: &ast.NumericLiteral{Value: 1}}))
 		return value
 	case "--":
 		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
-		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "-", Right: &ast.IntegerLiteral{Value: 1}}))
+		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "-", Right: &ast.NumericLiteral{Value: 1}}))
 		return value
 	default:
 		panic("Unknown postfix operator!")
@@ -300,70 +300,48 @@ func (i *Interpreter) doFunctionCall(call *ast.CallExpression) ast.Expression {
 }
 
 func (i *Interpreter) doAdd(left ast.Expression, right ast.Expression) ast.Expression {
-	var l string
+	var lhs float64
 	switch left.(type) {
-	case *ast.Identifier:
-		l = i.lookupVar(left.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
-		l = (left.(*ast.StringLiteral).Value)
-	case *ast.IntegerLiteral:
-		l = (left.(*ast.IntegerLiteral).String())
+		return &ast.StringLiteral{Value: ""}
+	case *ast.NumericLiteral:
+		lhs = (left.(*ast.NumericLiteral).Value)
 	default:
 		panic("error in doAdd")
 	}
 
-	var r string
+	var rhs float64
 	switch right.(type) {
-	case *ast.Identifier:
-		r = i.lookupVar(right.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
-		r = (right.(*ast.StringLiteral).Value)
-	case *ast.IntegerLiteral:
-		r = (right.(*ast.IntegerLiteral).String())
+		return &ast.StringLiteral{Value: ""}
+	case *ast.NumericLiteral:
+		rhs = (right.(*ast.NumericLiteral).Value)
 	default:
-		r = i.doExpression(right).String()
+		panic("error in doAdd")
 	}
-	lInt, ok := strconv.Atoi(l)
-	if ok != nil {
-		panic("lhs not int")
-	}
-	rInt, ok := strconv.Atoi(r)
-	if ok != nil {
-		panic("rhs not int")
-	}
-	return &ast.IntegerLiteral{Value: lInt + rInt}
+	return &ast.NumericLiteral{Value: lhs + rhs}
 }
 func (i *Interpreter) doMinus(left ast.Expression, right ast.Expression) ast.Expression {
-	var l string
+	var lhs float64
 	switch left.(type) {
-	case *ast.Identifier:
-		l = i.lookupVar(left.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
-		l = (left.(*ast.StringLiteral).Value)
+		return &ast.StringLiteral{Value: ""}
+	case *ast.NumericLiteral:
+		lhs = (left.(*ast.NumericLiteral).Value)
 	default:
-		panic("error in doMinus")
+		panic("error in doAdd")
 	}
 
-	var r string
+	var rhs float64
 	switch right.(type) {
-	case *ast.Identifier:
-		r = i.lookupVar(right.(*ast.Identifier).Value).String()
 	case *ast.StringLiteral:
-		r = (right.(*ast.StringLiteral).Value)
-	case *ast.IntegerLiteral:
-		r = (right.(*ast.IntegerLiteral).String())
+		return &ast.StringLiteral{Value: ""}
+	case *ast.NumericLiteral:
+		rhs = (right.(*ast.NumericLiteral).Value)
 	default:
-		r = i.doExpression(right).String()
+		panic("error in doAdd")
 	}
-	lInt, ok := strconv.Atoi(l)
-	if ok != nil {
-		panic("lhs not int")
-	}
-	rInt, ok := strconv.Atoi(r)
-	if ok != nil {
-		panic("rhs not int")
-	}
-	return &ast.IntegerLiteral{Value: lInt - rInt}
+	return &ast.NumericLiteral{Value: lhs + rhs}
 }
 
 func (i *Interpreter) doConcatenate(left ast.Expression, right ast.Expression) ast.Expression {

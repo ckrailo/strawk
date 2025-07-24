@@ -56,6 +56,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifierExpr)
 	p.registerPrefix(token.STRING, p.parseStringLiteralExpr)
+	p.registerPrefix(token.NUMBER, p.parseNumericLiteralExpr)
 	p.registerPrefix(token.SLASH, p.parseRegexExpression)
 	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
 	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
@@ -341,10 +342,6 @@ func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 
 func (p *Parser) parseIdentifierExpr() ast.Expression {
 	defer p.nextToken()
-	val, err := strconv.Atoi(p.curToken.Literal)
-	if err == nil {
-		return &ast.IntegerLiteral{Value: val}
-	}
 	if p.curToken.Literal == "false" {
 		return &ast.Boolean{Value: false}
 	}
@@ -366,6 +363,16 @@ func (p *Parser) parseIdentifierExpr() ast.Expression {
 
 func (p *Parser) parseStringLiteralExpr() ast.Expression {
 	lit := &ast.StringLiteral{Value: p.curToken.Literal}
+	p.nextToken()
+	return lit
+}
+
+func (p *Parser) parseNumericLiteralExpr() ast.Expression {
+	val, err := strconv.ParseFloat(p.curToken.Literal, 64)
+	if err != nil {
+		panic("unparsable numeric type")
+	}
+	lit := &ast.NumericLiteral{Value: val}
 	p.nextToken()
 	return lit
 }

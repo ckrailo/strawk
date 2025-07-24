@@ -2,7 +2,7 @@ package ast
 
 import (
 	"bytes"
-	"strconv"
+	"fmt"
 	"strings"
 
 	"github.com/ahalbert/strawk/pkg/token"
@@ -284,14 +284,19 @@ func (b *Boolean) expressionNode()      {}
 func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
 func (b *Boolean) String() string       { return b.Token.Literal }
 
-type IntegerLiteral struct {
+type NumericLiteral struct {
 	Token token.Token
-	Value int
+	Value float64
 }
 
-func (il *IntegerLiteral) expressionNode()      {}
-func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
-func (il *IntegerLiteral) String() string       { return strconv.Itoa(il.Value) }
+func (il *NumericLiteral) expressionNode()      {}
+func (il *NumericLiteral) TokenLiteral() string { return il.Token.Literal }
+func (il *NumericLiteral) String() string {
+	if il.Value == float64(int(il.Value)) {
+		return fmt.Sprintf("%d", int(il.Value))
+	}
+	return fmt.Sprintf("%.5f", il.Value)
+}
 
 type StringLiteral struct {
 	Token token.Token
