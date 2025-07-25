@@ -14,12 +14,12 @@ const (
 	EOF     = "EOF"
 
 	//Identfiers
-	IDENT      = "IDENT"
-	REGEX      = "REGEX"
-	STRING     = "STRING"
-	NUMBER     = "NUMBER"
-	WHITESPACE = "WHITESPACE"
-	COMMENT    = "COMMENT"
+	IDENT   = "IDENT"
+	REGEX   = "REGEX"
+	STRING  = "STRING"
+	NUMBER  = "NUMBER"
+	NEWLINE = "\n"
+	COMMENT = "COMMENT"
 
 	//symbols
 
@@ -28,8 +28,6 @@ const (
 	ASSIGN        = "="
 	SEMICOLON     = ";"
 	COMMA         = ","
-	GOTO          = "->"
-	RESET         = "-->"
 	LBRACE        = "{"
 	RBRACE        = "}"
 
@@ -41,6 +39,8 @@ const (
 	BANG       = "!"
 	ASTERISK   = "*"
 	SLASH      = "/"
+	MODULO     = "%"
+	EXPONENT   = "^"
 	TILDE      = "~"
 
 	LT = "<"

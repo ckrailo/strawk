@@ -14,21 +14,26 @@ const (
 	LOWEST
 	EQUALS      // ==
 	LESSGREATER // > or <
+	CONCATENATE // implied
 	SUM         // +
-	PRODUCT     // *
+	PRODUCT     // *, /, %
+	EXPONENT    // ^
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
 )
 
 var precedences = map[token.TokenType]int{
-	token.EQ:     EQUALS,
-	token.NOT_EQ: EQUALS,
-	token.LT:     LESSGREATER,
-	token.GT:     LESSGREATER,
-	token.PLUS:   SUM,
-	token.MINUS:  SUM,
-	token.SLASH:  PRODUCT,
-	token.LPAREN: CALL,
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
+	token.MODULO:   PRODUCT,
+	token.EXPONENT: EXPONENT,
+	token.LPAREN:   CALL,
 }
 
 type (
@@ -67,10 +72,12 @@ func New(l *lexer.Lexer) *Parser {
 	// p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
-	// p.registerInfix(token.MINUS, p.parseInfixExpression)
-	// p.registerInfix(token.SLASH, p.parseInfixExpression)
-	// p.registerInfix(token.TILDE, p.parseInfixExpression)
-	// p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.MINUS, p.parseInfixExpression)
+	p.registerInfix(token.ASTERISK, p.parseInfixExpression)
+	p.registerInfix(token.SLASH, p.parseInfixExpression)
+	p.registerInfix(token.MODULO, p.parseInfixExpression)
+	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
+	p.registerInfix(token.TILDE, p.parseInfixExpression)
 	// p.registerInfix(token.EQ, p.parseInfixExpression)
 	// p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
 	// p.registerInfix(token.LT, p.parseInfixExpression)
@@ -169,6 +176,9 @@ func (p *Parser) parseStatement() ast.Statement {
 	// 	return p.parseReturnStatement()
 	case token.PRINT:
 		return p.parsePrintStatement()
+	case token.NEWLINE:
+		p.nextToken()
+		return nil
 	default:
 		return p.parseExpressionPrefixedStatements()
 	}
@@ -196,7 +206,10 @@ func (p *Parser) parseBeginStatement() *ast.BeginStatement {
 	p.nextToken()
 
 	for !p.curTokenIs(token.RBRACE) {
-		block.Statements = append(block.Statements, p.parseStatement())
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
 	}
 
 	p.nextToken()
@@ -211,7 +224,10 @@ func (p *Parser) parseEndStatement() *ast.EndStatement {
 	p.nextToken()
 
 	for !p.curTokenIs(token.RBRACE) {
-		block.Statements = append(block.Statements, p.parseStatement())
+		stmt := p.parseStatement()
+		if stmt != nil {
+			block.Statements = append(block.Statements, stmt)
+		}
 	}
 
 	return block
@@ -282,7 +298,10 @@ func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.Act
 	p.nextToken()
 
 	for !p.curTokenIs(token.RBRACE) {
-		stmt.Statements = append(stmt.Statements, p.parseStatement())
+		s := p.parseStatement()
+		if s != nil {
+			stmt.Statements = append(stmt.Statements, s)
+		}
 	}
 
 	p.nextToken()
@@ -324,14 +343,22 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 	leftExp := prefix()
 
-	for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.ASSIGNPLUS, token.LBRACE) && precedence < p.curPrecedence() {
-		infix := p.infixParseFns[p.curToken.Type]
-		if infix == nil {
-			return leftExp
+	if !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE) && precedence < p.curPrecedence() {
+		for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE) && precedence < p.curPrecedence() {
+			infix := p.infixParseFns[p.curToken.Type]
+			if infix == nil {
+				return leftExp
+			}
+			leftExp = infix(leftExp)
 		}
-		leftExp = infix(leftExp)
+		return leftExp
 	}
 
+	_, pok := p.prefixParseFns[p.curToken.Type]
+	_, iok := p.infixParseFns[p.curToken.Type]
+	if pok || iok {
+		return p.parseConcatenateExpression(leftExp)
+	}
 	return leftExp
 }
 
@@ -381,6 +408,19 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	expression := &ast.PrefixExpression{Operator: p.curToken.Literal}
 	p.nextToken()
 	expression.Right = p.parseExpression(PREFIX)
+	return expression
+}
+
+func (p *Parser) parseConcatenateExpression(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: ".",
+		Left:     left,
+	}
+
+	precedence := CONCATENATE
+	expression.Right = p.parseExpression(precedence)
+
 	return expression
 }
 

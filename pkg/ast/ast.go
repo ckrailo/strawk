@@ -3,6 +3,7 @@ package ast
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ahalbert/strawk/pkg/token"
@@ -295,7 +296,7 @@ func (il *NumericLiteral) String() string {
 	if il.Value == float64(int(il.Value)) {
 		return fmt.Sprintf("%d", int(il.Value))
 	}
-	return fmt.Sprintf("%.5f", il.Value)
+	return fmt.Sprintf("%.5g", il.Value)
 }
 
 type StringLiteral struct {
@@ -306,6 +307,14 @@ type StringLiteral struct {
 func (sl *StringLiteral) expressionNode()      {}
 func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
 func (sl *StringLiteral) String() string       { return sl.Value }
+
+func NewLiteral(val string) Expression {
+	parsed, err := strconv.ParseFloat(val, 64)
+	if err != nil {
+		return &StringLiteral{Value: val}
+	}
+	return &NumericLiteral{Value: parsed}
+}
 
 type RegexLiteral struct {
 	Token token.Token

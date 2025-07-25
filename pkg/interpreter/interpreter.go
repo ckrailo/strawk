@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -204,6 +205,8 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 	left := i.doExpression(expression.Left)
 	right := i.doExpression(expression.Right)
 	switch expression.Operator {
+	case ".":
+		return i.doConcatenate(left, right)
 	case "~":
 		return i.doRegexMatch(left, right, false)
 	case "~$0":
@@ -212,6 +215,14 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 		return i.doAdd(left, right)
 	case "-":
 		return i.doMinus(left, right)
+	case "*":
+		return i.doMultiply(left, right)
+	case "/":
+		return i.doDivide(left, right)
+	case "%":
+		return i.doModulus(left, right)
+	case "^":
+		return i.doExponentiation(left, right)
 	}
 	return nil
 }
@@ -283,7 +294,7 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 		}
 		for idx, match := range matches {
 			stridx := "$" + strconv.Itoa(idx)
-			i.mostRecentRegexCaptureGroups[stridx] = &ast.StringLiteral{Value: match}
+			i.mostRecentRegexCaptureGroups[stridx] = ast.NewLiteral(match)
 		}
 		return &ast.Boolean{Value: true}
 	}
@@ -299,68 +310,60 @@ func (i *Interpreter) doFunctionCall(call *ast.CallExpression) ast.Expression {
 	return function(evaluatedArgs)
 }
 
-func (i *Interpreter) doAdd(left ast.Expression, right ast.Expression) ast.Expression {
-	var lhs float64
-	switch left.(type) {
+func convertLiteralForMathOp(expr ast.Expression) float64 {
+	switch expr.(type) {
 	case *ast.StringLiteral:
-		return &ast.StringLiteral{Value: ""}
+		return 0.0
 	case *ast.NumericLiteral:
-		lhs = (left.(*ast.NumericLiteral).Value)
+		return (expr.(*ast.NumericLiteral).Value)
 	default:
-		panic("error in doAdd")
+		panic("error in math")
 	}
-
-	var rhs float64
-	switch right.(type) {
-	case *ast.StringLiteral:
-		return &ast.StringLiteral{Value: ""}
-	case *ast.NumericLiteral:
-		rhs = (right.(*ast.NumericLiteral).Value)
-	default:
-		panic("error in doAdd")
-	}
-	return &ast.NumericLiteral{Value: lhs + rhs}
 }
-func (i *Interpreter) doMinus(left ast.Expression, right ast.Expression) ast.Expression {
-	var lhs float64
-	switch left.(type) {
-	case *ast.StringLiteral:
-		return &ast.StringLiteral{Value: ""}
-	case *ast.NumericLiteral:
-		lhs = (left.(*ast.NumericLiteral).Value)
-	default:
-		panic("error in doAdd")
-	}
 
-	var rhs float64
-	switch right.(type) {
-	case *ast.StringLiteral:
-		return &ast.StringLiteral{Value: ""}
-	case *ast.NumericLiteral:
-		rhs = (right.(*ast.NumericLiteral).Value)
-	default:
-		panic("error in doAdd")
-	}
-	return &ast.NumericLiteral{Value: lhs + rhs}
+func (i *Interpreter) doAdd(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: convertLiteralForMathOp(left) + convertLiteralForMathOp(right)}
+}
+
+func (i *Interpreter) doMinus(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: convertLiteralForMathOp(left) - convertLiteralForMathOp(right)}
+}
+
+func (i *Interpreter) doMultiply(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: convertLiteralForMathOp(left) * convertLiteralForMathOp(right)}
+}
+
+func (i *Interpreter) doDivide(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: convertLiteralForMathOp(left) / convertLiteralForMathOp(right)}
+}
+
+func (i *Interpreter) doModulus(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: math.Mod(convertLiteralForMathOp(left), convertLiteralForMathOp(right))}
+}
+
+func (i *Interpreter) doExponentiation(left ast.Expression, right ast.Expression) ast.Expression {
+	return &ast.NumericLiteral{Value: math.Pow(convertLiteralForMathOp(left), convertLiteralForMathOp(right))}
 }
 
 func (i *Interpreter) doConcatenate(left ast.Expression, right ast.Expression) ast.Expression {
-	var l string
-	var r string
-	left = i.doExpression(left)
-	right = i.doExpression(right)
+	var lhs string
+	var rhs string
 	switch left.(type) {
 	case *ast.StringLiteral:
-		l = (left.(*ast.StringLiteral).Value)
+		lhs = (left.(*ast.StringLiteral).Value)
+	case *ast.NumericLiteral:
+		lhs = (right.(*ast.NumericLiteral).String())
 	default:
 		panic("error in doConcatenate")
 	}
 
 	switch right.(type) {
 	case *ast.StringLiteral:
-		r = (right.(*ast.StringLiteral).Value)
+		rhs = (right.(*ast.StringLiteral).Value)
+	case *ast.NumericLiteral:
+		rhs = (right.(*ast.NumericLiteral).String())
 	default:
 		panic("error in doConcatenate")
 	}
-	return &ast.StringLiteral{Value: l + r}
+	return &ast.StringLiteral{Value: lhs + rhs}
 }

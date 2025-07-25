@@ -179,6 +179,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.COLON, ":")
 	case ';':
 		tok = l.newToken(token.SEMICOLON, ";")
+	case '\n':
+		tok = l.newToken(token.NEWLINE, "\n")
 	case '+':
 		lookahead := l.peek(1)
 		if lookahead == "=" {
@@ -192,6 +194,10 @@ func (l *Lexer) NextToken() token.Token {
 		}
 	case '*':
 		tok = l.newToken(token.ASTERISK, "*")
+	case '%':
+		tok = l.newToken(token.MODULO, "%")
+	case '^':
+		tok = l.newToken(token.EXPONENT, "^")
 	case 0:
 		tok = l.newToken(token.EOF, "")
 	default:
@@ -231,7 +237,7 @@ func (l *Lexer) isInsideRegex() bool {
 }
 
 func (l *Lexer) skipWhitespace() {
-	for l.ch == '#' || l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+	for l.ch == '#' || l.ch == ' ' || l.ch == '\t' || l.ch == '\r' {
 		if l.ch == '#' {
 			if l.isInsideRegex() {
 				return
