@@ -12,8 +12,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
-	EQUALS      // ==
-	LESSGREATER // > or <
+	EQUALITY    // ==
 	CONCATENATE // implied
 	SUM         // +
 	PRODUCT     // *, /, %
@@ -23,10 +22,12 @@ const (
 )
 
 var precedences = map[token.TokenType]int{
-	token.EQ:       EQUALS,
-	token.NOT_EQ:   EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
+	token.EQ:       EQUALITY,
+	token.NOT_EQ:   EQUALITY,
+	token.LT:       EQUALITY,
+	token.GT:       EQUALITY,
+	token.LTEQ:     EQUALITY,
+	token.GTEQ:     EQUALITY,
 	token.PLUS:     SUM,
 	token.MINUS:    SUM,
 	token.ASTERISK: PRODUCT,
@@ -78,10 +79,12 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MODULO, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
 	p.registerInfix(token.TILDE, p.parseInfixExpression)
-	// p.registerInfix(token.EQ, p.parseInfixExpression)
-	// p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
-	// p.registerInfix(token.LT, p.parseInfixExpression)
-	// p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.EQ, p.parseInfixExpression)
+	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
+	p.registerInfix(token.LT, p.parseInfixExpression)
+	p.registerInfix(token.GT, p.parseInfixExpression)
+	p.registerInfix(token.LTEQ, p.parseInfixExpression)
+	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	// Read two tokens, so curToken and peekToken are both set

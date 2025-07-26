@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -223,6 +224,18 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 		return i.doModulus(left, right)
 	case "^":
 		return i.doExponentiation(left, right)
+	case "==":
+		return i.doEquality(left, right)
+	case "!=":
+		return i.doNotEquals(left, right)
+	case "<":
+		return i.doLessThan(left, right)
+	case ">":
+		return i.doGreaterThan(left, right)
+	case "<=":
+		return i.doLessThanEqualTo(left, right)
+	case ">=":
+		return i.doGreaterThanEqualTo(left, right)
 	}
 	return nil
 }
@@ -345,25 +358,86 @@ func (i *Interpreter) doExponentiation(left ast.Expression, right ast.Expression
 	return &ast.NumericLiteral{Value: math.Pow(convertLiteralForMathOp(left), convertLiteralForMathOp(right))}
 }
 
-func (i *Interpreter) doConcatenate(left ast.Expression, right ast.Expression) ast.Expression {
-	var lhs string
-	var rhs string
-	switch left.(type) {
+func convertLiteralForStringOp(expr ast.Expression) string {
+	switch expr.(type) {
 	case *ast.StringLiteral:
-		lhs = (left.(*ast.StringLiteral).Value)
+		return expr.(*ast.StringLiteral).Value
 	case *ast.NumericLiteral:
-		lhs = (right.(*ast.NumericLiteral).String())
+		return (expr.(*ast.NumericLiteral).String())
 	default:
-		panic("error in doConcatenate")
+		panic("error in literal to string conversion")
+	}
+}
+
+func (i *Interpreter) doConcatenate(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs := convertLiteralForStringOp(left)
+	rhs := convertLiteralForStringOp(right)
+	return &ast.StringLiteral{Value: lhs + rhs}
+}
+
+func boolToExpression(b bool) ast.Expression {
+	if b {
+		return &ast.StringLiteral{Value: "1"}
+	} else {
+		return &ast.StringLiteral{Value: "0"}
+	}
+}
+
+func (i *Interpreter) doEquality(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs := convertLiteralForStringOp(left)
+	rhs := convertLiteralForStringOp(right)
+	return boolToExpression(lhs == rhs)
+}
+
+func (i *Interpreter) doNotEquals(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs := convertLiteralForStringOp(left)
+	rhs := convertLiteralForStringOp(right)
+	return boolToExpression(lhs != rhs)
+}
+
+func convertLiteralForComparisonOp(expr ast.Expression) (float64, error) {
+	switch expr.(type) {
+	case *ast.StringLiteral:
+		return 0.0, errors.New("failed to convert to float")
+	case *ast.NumericLiteral:
+		return (expr.(*ast.NumericLiteral).Value), nil
+	default:
+		panic("error in math")
+	}
+}
+
+func (i *Interpreter) doGreaterThan(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs_float, lerr := convertLiteralForComparisonOp(left)
+	rhs_float, rerr := convertLiteralForComparisonOp(right)
+	if lerr == nil && rerr == nil {
+		return boolToExpression(lhs_float > rhs_float)
 	}
 
-	switch right.(type) {
-	case *ast.StringLiteral:
-		rhs = (right.(*ast.StringLiteral).Value)
-	case *ast.NumericLiteral:
-		rhs = (right.(*ast.NumericLiteral).String())
-	default:
-		panic("error in doConcatenate")
+	lhs_str := convertLiteralForStringOp(left)
+	rhs_str := convertLiteralForStringOp(right)
+	return boolToExpression(lhs_str > rhs_str)
+}
+
+func (i *Interpreter) doGreaterThanEqualTo(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs_float, lerr := convertLiteralForComparisonOp(left)
+	rhs_float, rerr := convertLiteralForComparisonOp(right)
+	if lerr == nil && rerr == nil {
+		return boolToExpression(lhs_float >= rhs_float)
 	}
-	return &ast.StringLiteral{Value: lhs + rhs}
+
+	lhs_str := convertLiteralForStringOp(left)
+	rhs_str := convertLiteralForStringOp(right)
+	return boolToExpression(lhs_str >= rhs_str)
+}
+
+func (i *Interpreter) doLessThan(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs := convertLiteralForStringOp(left)
+	rhs := convertLiteralForStringOp(right)
+	return boolToExpression(lhs < rhs)
+}
+
+func (i *Interpreter) doLessThanEqualTo(left ast.Expression, right ast.Expression) ast.Expression {
+	lhs := convertLiteralForStringOp(left)
+	rhs := convertLiteralForStringOp(right)
+	return boolToExpression(lhs <= rhs)
 }

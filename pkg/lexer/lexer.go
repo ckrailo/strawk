@@ -198,6 +198,30 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.MODULO, "%")
 	case '^':
 		tok = l.newToken(token.EXPONENT, "^")
+	case '!':
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.NOT_EQ, "!=")
+		} else {
+			tok = l.newToken(token.BANG, "!")
+		}
+	case '<':
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.LTEQ, "<=")
+		} else {
+			tok = l.newToken(token.LT, "<")
+		}
+	case '>':
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.GTEQ, ">=")
+		} else {
+			tok = l.newToken(token.GT, ">")
+		}
 	case 0:
 		tok = l.newToken(token.EOF, "")
 	default:
