@@ -208,6 +208,23 @@ func (ce *CallExpression) String() string {
 	return out.String()
 }
 
+type TernaryExpression struct {
+	Token     token.Token // The '(' token
+	Condition Expression
+	IfTrue    Expression
+	IfFalse   Expression
+}
+
+func (te *TernaryExpression) expressionNode()      {}
+func (te *TernaryExpression) TokenLiteral() string { return te.Token.Literal }
+func (te *TernaryExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(te.Condition.String() + " ? " + te.IfTrue.String() + " : " + te.IfFalse.String())
+
+	return out.String()
+}
+
 type PrefixExpression struct {
 	Token    token.Token
 	Operator string

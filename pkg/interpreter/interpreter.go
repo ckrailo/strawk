@@ -190,6 +190,8 @@ func (i *Interpreter) doExpressionList(expressions []ast.Expression) []ast.Expre
 
 func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 	switch expr.(type) {
+	case *ast.TernaryExpression:
+		return i.doTernaryExpression(expr.(*ast.TernaryExpression))
 	case *ast.InfixExpression:
 		return i.doInfixExpression(expr.(*ast.InfixExpression))
 	case *ast.CallExpression:
@@ -440,4 +442,29 @@ func (i *Interpreter) doLessThanEqualTo(left ast.Expression, right ast.Expressio
 	lhs := convertLiteralForStringOp(left)
 	rhs := convertLiteralForStringOp(right)
 	return boolToExpression(lhs <= rhs)
+}
+
+func ExpressionToBool(expr ast.Expression) bool {
+	switch expr.(type) {
+	case *ast.StringLiteral:
+		if expr.(*ast.StringLiteral).String() == "0" {
+			return false
+		}
+		return true
+	case *ast.NumericLiteral:
+		if (expr.(*ast.NumericLiteral).Value) == 0.0 {
+			return false
+		}
+		return true
+	default:
+		panic("error in bool")
+	}
+
+}
+
+func (i *Interpreter) doTernaryExpression(expr *ast.TernaryExpression) ast.Expression {
+	if ExpressionToBool(i.doExpression(expr.Condition)) {
+		return i.doExpression(expr.IfTrue)
+	}
+	return i.doExpression(expr.IfFalse)
 }

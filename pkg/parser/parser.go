@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	TERNARY     // ?
 	EQUALITY    // ==
 	CONCATENATE // implied
 	SUM         // +
@@ -22,6 +23,7 @@ const (
 )
 
 var precedences = map[token.TokenType]int{
+	token.TERNARY:  TERNARY,
 	token.EQ:       EQUALITY,
 	token.NOT_EQ:   EQUALITY,
 	token.LT:       EQUALITY,
@@ -79,6 +81,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.MODULO, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
 	p.registerInfix(token.TILDE, p.parseInfixExpression)
+
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
@@ -86,6 +89,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
 
+	p.registerInfix(token.TERNARY, p.parseTernaryExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -346,8 +350,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 	leftExp := prefix()
 
-	if !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE) && precedence < p.curPrecedence() {
-		for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE) && precedence < p.curPrecedence() {
+	if !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON) && precedence < p.curPrecedence() {
+		for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON) && precedence < p.curPrecedence() {
 			infix := p.infixParseFns[p.curToken.Type]
 			if infix == nil {
 				return leftExp
@@ -359,7 +363,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 	_, pok := p.prefixParseFns[p.curToken.Type]
 	_, iok := p.infixParseFns[p.curToken.Type]
-	if pok || iok {
+	if pok || iok && precedence <= p.curPrecedence() {
 		return p.parseConcatenateExpression(leftExp)
 	}
 	return leftExp
@@ -480,4 +484,17 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 	}
 	p.nextToken()
 	return exp
+}
+
+func (p *Parser) parseTernaryExpression(expr ast.Expression) ast.Expression {
+	ternaryExpr := &ast.TernaryExpression{Condition: expr}
+	p.nextToken()
+	ternaryExpr.IfTrue = p.parseExpression(LOWEST)
+	if !p.curTokenIs(token.COLON) {
+		panic("expected :")
+		// p.addError(fmt.Sprintf("expected ), got %s %s", p.curToken.Type, p.curToken.Literal))
+	}
+	p.nextToken()
+	ternaryExpr.IfFalse = p.parseExpression(LOWEST)
+	return ternaryExpr
 }

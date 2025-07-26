@@ -23,7 +23,6 @@ const (
 
 	//symbols
 
-	COLON         = ":"
 	ESCAPED_SLASH = "\\"
 	ASSIGN        = "="
 	SEMICOLON     = ";"
@@ -31,7 +30,8 @@ const (
 	LBRACE        = "{"
 	RBRACE        = "}"
 
-	BANG           = "!"
+	BANG = "!"
+
 	ASSIGNPLUS     = "+="
 	PLUS           = "+"
 	INCREMENT      = "++"
@@ -45,7 +45,11 @@ const (
 	MODULO         = "%"
 	ASSIGNMODULO   = "%="
 	EXPONENT       = "^"
-	TILDE          = "~"
+
+	TILDE = "~"
+
+	TERNARY = "?"
+	COLON   = ":"
 
 	LT   = "<"
 	GT   = ">"
