@@ -135,7 +135,13 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '/':
-		tok = l.newToken(token.SLASH, "/")
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.ASSIGNDIVIDE, "/=")
+		} else {
+			tok = l.newToken(token.SLASH, "/")
+		}
 	case '\\':
 		tok = l.newToken(token.ESCAPED_SLASH, "\\")
 	case '"':
@@ -199,11 +205,29 @@ func (l *Lexer) NextToken() token.Token {
 			tok = l.newToken(token.PLUS, "+")
 		}
 	case '*':
-		tok = l.newToken(token.ASTERISK, "*")
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.ASSIGNMULTIPLY, "*=")
+		} else {
+			tok = l.newToken(token.ASTERISK, "*")
+		}
 	case '%':
-		tok = l.newToken(token.MODULO, "%")
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.ASSIGNMODULO, "%=")
+		} else {
+			tok = l.newToken(token.MODULO, "%")
+		}
 	case '^':
-		tok = l.newToken(token.EXPONENT, "^")
+		lookahead := l.peek(1)
+		if lookahead == "=" {
+			l.readChar()
+			tok = l.newToken(token.ASSIGNEXPONENT, "^=")
+		} else {
+			tok = l.newToken(token.EXPONENT, "^")
+		}
 	case '~':
 		tok = l.newToken(token.REGEXMATCH, "~")
 	case '!':

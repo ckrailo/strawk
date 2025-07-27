@@ -216,6 +216,16 @@ func (p *Parser) parseExpressionPrefixedStatements() ast.Statement {
 		return p.parseAssignStatement(exprs)
 	case token.ASSIGNPLUS:
 		return p.parseAssignAndModifyStatement(exprs)
+	case token.ASSIGNMINUS:
+		return p.parseAssignAndModifyStatement(exprs)
+	case token.ASSIGNMULTIPLY:
+		return p.parseAssignAndModifyStatement(exprs)
+	case token.ASSIGNDIVIDE:
+		return p.parseAssignAndModifyStatement(exprs)
+	case token.ASSIGNMODULO:
+		return p.parseAssignAndModifyStatement(exprs)
+	case token.ASSIGNEXPONENT:
+		return p.parseAssignAndModifyStatement(exprs)
 	case token.LBRACE:
 		return p.parseActionBlockStatement(exprs)
 	default:
@@ -287,20 +297,18 @@ func (p *Parser) parseAssignAndModifyStatement(targets []ast.Expression) *ast.As
 		panic(p.curToken.Literal + " should have exactly 1 target")
 	}
 
-	var targetIdent *ast.Identifier
-
 	operator := p.curToken
 	target := targets[0]
 	switch target.(type) {
 	case *ast.Identifier:
-		targetIdent = target.(*ast.Identifier)
+	case *ast.ArrayIndexExpression:
 	default:
 		panic("found non-identifier expression on lhs of assign statement")
 	}
 
 	p.nextToken()
 
-	return &ast.AssignAndModifyStatement{Operator: operator, Target: targetIdent, Value: p.parseExpression(LOWEST)}
+	return &ast.AssignAndModifyStatement{Operator: operator, Target: target, Value: p.parseExpression(LOWEST)}
 }
 
 func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.ActionBlockStatement {

@@ -49,6 +49,7 @@ const (
 	MODULO         = "%"
 	ASSIGNMODULO   = "%="
 	EXPONENT       = "^"
+	ASSIGNEXPONENT = "^="
 
 	REGEXMATCH    = "~"
 	NOTREGEXMATCH = "!~"

@@ -147,7 +147,7 @@ func (as *AssignStatement) String() string {
 type AssignAndModifyStatement struct {
 	Token    token.Token // the { token
 	Operator token.Token
-	Target   *Identifier
+	Target   Expression
 	Value    Expression
 }
 

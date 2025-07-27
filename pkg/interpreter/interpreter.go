@@ -256,6 +256,16 @@ func (i *Interpreter) doAssignAndModifyStatement(stmt *ast.AssignAndModifyStatem
 	switch stmt.Operator.Type {
 	case token.ASSIGNPLUS:
 		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "+", Right: stmt.Value})
+	case token.ASSIGNMINUS:
+		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "-", Right: stmt.Value})
+	case token.ASSIGNMULTIPLY:
+		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "*", Right: stmt.Value})
+	case token.ASSIGNDIVIDE:
+		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "/", Right: stmt.Value})
+	case token.ASSIGNMODULO:
+		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "%", Right: stmt.Value})
+	case token.ASSIGNEXPONENT:
+		newValue = i.doExpression(&ast.InfixExpression{Left: stmt.Target, Operator: "^", Right: stmt.Value})
 	default:
 		panic("Unknown Operator.")
 	}
@@ -292,14 +302,24 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 
 func (i *Interpreter) doPrefixExpression(expression *ast.PrefixExpression) ast.Expression {
 
-	expr := i.doExpression(expression.Right)
+	switch expression.Right.(type) {
+	case *ast.ArrayIndexExpression:
+		panic("attempt to prefix array")
+	}
+
 	switch expression.Operator {
 	case "!":
-		return invertBool(expr)
+		return invertBool(i.doExpression(expression.Right))
 	case "-":
-		return negate(expr)
+		return negate(i.doExpression(expression.Right))
+	case "++":
+		i.setVar(expression.Right, i.doExpression(&ast.InfixExpression{Left: expression.Right, Operator: "+", Right: &ast.NumericLiteral{Value: 1}}))
+		return i.lookupVar(expression.Right)
+	case "--":
+		i.setVar(expression.Right, i.doExpression(&ast.InfixExpression{Left: expression.Right, Operator: "-", Right: &ast.NumericLiteral{Value: 1}}))
+		return i.lookupVar(expression.Right)
 	default:
-		panic("Unkown prefix operator")
+		panic("Unknown prefix operator")
 	}
 }
 
@@ -348,7 +368,6 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 	default:
 		panic("Unknown Operator!")
 	}
-	return nil
 }
 
 func (i *Interpreter) doPostfixExpression(expr *ast.PostfixExpression) ast.Expression {
