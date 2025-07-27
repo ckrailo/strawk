@@ -232,13 +232,9 @@ func (i *Interpreter) doBlock(block ast.Block) {
 
 func (i *Interpreter) evaluateActionBlockConditon(block *ast.ActionBlockStatement) bool {
 	evaluatedExpr := i.doExpression(block.Conditon)
-	switch evaluatedExpr.(type) {
-	case *ast.Boolean:
-		return evaluatedExpr.(*ast.Boolean).Value
-	default:
-		panic("Expected Bool expression!!!")
-	}
+	return ExpressionToBool(evaluatedExpr)
 }
+
 func (i *Interpreter) doPrintStatement(stmt *ast.PrintStatement) {
 	toBePrinted := i.doExpressionList(stmt.Expressions)
 	var asStrings []string
@@ -300,6 +296,8 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 		return i.doConcatenate(left, right)
 	case "~":
 		return i.doRegexMatch(left, right, false)
+	case "!~":
+		return invertBool(i.doRegexMatch(left, right, false))
 	case "~$0":
 		return i.doRegexMatch(left, right, true)
 	case "+":
@@ -317,7 +315,7 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 	case "==":
 		return i.doEquality(left, right)
 	case "!=":
-		return i.doNotEquals(left, right)
+		return invertBool(i.doEquality(left, right))
 	case "<":
 		return i.doLessThan(left, right)
 	case ">":
@@ -413,9 +411,9 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 			stridx := "$" + strconv.Itoa(idx)
 			i.mostRecentRegexCaptureGroups[stridx] = ast.NewLiteral(match)
 		}
-		return &ast.Boolean{Value: true}
+		return boolToExpression(true)
 	}
-	return &ast.Boolean{Value: false}
+	return boolToExpression(false)
 }
 
 func (i *Interpreter) doFunctionCall(call *ast.CallExpression) ast.Expression {
@@ -484,6 +482,23 @@ func boolToExpression(b bool) ast.Expression {
 		return &ast.StringLiteral{Value: "1"}
 	} else {
 		return &ast.StringLiteral{Value: "0"}
+	}
+}
+
+func invertBool(expr ast.Expression) ast.Expression {
+	switch expr.(type) {
+	case *ast.StringLiteral:
+		if expr.(*ast.StringLiteral).Value == "0" {
+			return &ast.StringLiteral{Value: "1"}
+		}
+		return &ast.StringLiteral{Value: "0"}
+	case *ast.NumericLiteral:
+		if expr.(*ast.NumericLiteral).Value == 0.0 {
+			return &ast.NumericLiteral{Value: 1.0}
+		}
+		return &ast.NumericLiteral{Value: 0.0}
+	default:
+		panic("error inverting expression!")
 	}
 }
 
@@ -558,10 +573,11 @@ func ExpressionToBool(expr ast.Expression) bool {
 			return false
 		}
 		return true
+	case *ast.AssociativeArray:
+		panic("Got Array in Scalar Context!")
 	default:
-		panic("error in bool")
+		panic("Expected Bool expression!!!")
 	}
-
 }
 
 func (i *Interpreter) doTernaryExpression(expr *ast.TernaryExpression) ast.Expression {

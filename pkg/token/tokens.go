@@ -48,7 +48,8 @@ const (
 	ASSIGNMODULO   = "%="
 	EXPONENT       = "^"
 
-	TILDE = "~"
+	REGEXMATCH    = "~"
+	NOTREGEXMATCH = "!~"
 
 	TERNARY = "?"
 	COLON   = ":"

@@ -204,11 +204,16 @@ func (l *Lexer) NextToken() token.Token {
 		tok = l.newToken(token.MODULO, "%")
 	case '^':
 		tok = l.newToken(token.EXPONENT, "^")
+	case '~':
+		tok = l.newToken(token.REGEXMATCH, "~")
 	case '!':
 		lookahead := l.peek(1)
 		if lookahead == "=" {
 			l.readChar()
 			tok = l.newToken(token.NOT_EQ, "!=")
+		} else if lookahead == "~" {
+			l.readChar()
+			tok = l.newToken(token.NOTREGEXMATCH, "!~")
 		} else {
 			tok = l.newToken(token.BANG, "!")
 		}

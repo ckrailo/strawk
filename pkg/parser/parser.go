@@ -12,8 +12,9 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	REGEXMATCH  // ~ or !~
 	MEMBERSHIP  // expr in array
-	TERNARY     // ?
+	TERNARY     // condition ? a : b
 	EQUALITY    // ==
 	CONCATENATE // implied
 	SUM         // +
@@ -25,22 +26,24 @@ const (
 )
 
 var precedences = map[token.TokenType]int{
-	token.IN:       MEMBERSHIP,
-	token.TERNARY:  TERNARY,
-	token.EQ:       EQUALITY,
-	token.NOT_EQ:   EQUALITY,
-	token.LT:       EQUALITY,
-	token.GT:       EQUALITY,
-	token.LTEQ:     EQUALITY,
-	token.GTEQ:     EQUALITY,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.ASTERISK: PRODUCT,
-	token.SLASH:    PRODUCT,
-	token.MODULO:   PRODUCT,
-	token.EXPONENT: EXPONENT,
-	token.LBRACKET: INDEX,
-	token.LPAREN:   CALL,
+	token.NOTREGEXMATCH: REGEXMATCH,
+	token.REGEXMATCH:    REGEXMATCH,
+	token.IN:            MEMBERSHIP,
+	token.TERNARY:       TERNARY,
+	token.EQ:            EQUALITY,
+	token.NOT_EQ:        EQUALITY,
+	token.LT:            EQUALITY,
+	token.GT:            EQUALITY,
+	token.LTEQ:          EQUALITY,
+	token.GTEQ:          EQUALITY,
+	token.PLUS:          SUM,
+	token.MINUS:         SUM,
+	token.ASTERISK:      PRODUCT,
+	token.SLASH:         PRODUCT,
+	token.MODULO:        PRODUCT,
+	token.EXPONENT:      EXPONENT,
+	token.LBRACKET:      INDEX,
+	token.LPAREN:        CALL,
 }
 
 type (
@@ -84,7 +87,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.SLASH, p.parseInfixExpression)
 	p.registerInfix(token.MODULO, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
-	p.registerInfix(token.TILDE, p.parseInfixExpression)
+	p.registerInfix(token.REGEXMATCH, p.parseInfixExpression)
+	p.registerInfix(token.NOTREGEXMATCH, p.parseInfixExpression)
 
 	p.registerInfix(token.EQ, p.parseInfixExpression)
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
