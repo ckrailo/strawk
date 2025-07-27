@@ -211,6 +211,12 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 		i.doAssignAndModifyStatement(stmt.(*ast.AssignAndModifyStatement))
 	case *ast.IfStatement:
 		i.doIfStatement(stmt.(*ast.IfStatement))
+	case *ast.WhileStatement:
+		i.doWhileStatement(stmt.(*ast.WhileStatement))
+	case *ast.DoWhileStatement:
+		i.doDoWhileStatement(stmt.(*ast.DoWhileStatement))
+	case *ast.ForStatement:
+		i.doForStatement(stmt.(*ast.ForStatement))
 	default:
 		panic("Unexpected statement type")
 	}
@@ -291,6 +297,79 @@ func (i *Interpreter) doIfStatement(stmt *ast.IfStatement) {
 	}
 	if shouldExecuteElse {
 		i.doBlock(stmt.Else)
+	}
+}
+
+func (i *Interpreter) doWhileStatement(stmt *ast.WhileStatement) {
+	stmt.ShouldBreak = false
+	for ExpressionToBool(i.doExpression(stmt.Condition)) && !stmt.ShouldBreak {
+		stmt.ShouldContinue = false
+		for _, st := range stmt.Block.Statements {
+			switch st.(type) {
+			case *ast.ContinueStatement:
+				stmt.ShouldContinue = true
+			case *ast.BreakStatement:
+				stmt.ShouldBreak = true
+			default:
+				i.doStatement(st)
+			}
+			if stmt.ShouldBreak {
+				break
+			}
+			if stmt.ShouldContinue {
+				break
+			}
+		}
+	}
+}
+
+func (i *Interpreter) doDoWhileStatement(stmt *ast.DoWhileStatement) {
+	stmt.ShouldBreak = false
+	initRun := true
+	for initRun || (ExpressionToBool(i.doExpression(stmt.Condition)) && !stmt.ShouldBreak) {
+		initRun = false
+		stmt.ShouldContinue = false
+		for _, st := range stmt.Block.Statements {
+			switch st.(type) {
+			case *ast.ContinueStatement:
+				stmt.ShouldContinue = true
+			case *ast.BreakStatement:
+				stmt.ShouldBreak = true
+			default:
+				i.doStatement(st)
+			}
+			if stmt.ShouldBreak {
+				break
+			}
+			if stmt.ShouldContinue {
+				break
+			}
+		}
+	}
+}
+
+func (i *Interpreter) doForStatement(stmt *ast.ForStatement) {
+	stmt.ShouldBreak = false
+	i.doStatement(stmt.Initialization)
+	for ExpressionToBool(i.doExpression(stmt.Condition)) && !stmt.ShouldBreak {
+		stmt.ShouldContinue = false
+		for _, st := range stmt.Block.Statements {
+			switch st.(type) {
+			case *ast.ContinueStatement:
+				stmt.ShouldContinue = true
+			case *ast.BreakStatement:
+				stmt.ShouldBreak = true
+			default:
+				i.doStatement(st)
+			}
+			if stmt.ShouldBreak {
+				break
+			}
+			if stmt.ShouldContinue {
+				break
+			}
+		}
+		i.doStatement(stmt.Action)
 	}
 }
 

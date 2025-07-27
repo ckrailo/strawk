@@ -70,6 +70,10 @@ const (
 
 	//Keywords
 	DO       = "DO"
+	WHILE    = "WHILE"
+	FOR      = "FOR"
+	BREAK    = "BREAK"
+	CONTINUE = "CONTINUE"
 	BEGIN    = "BEGIN"
 	END      = "END"
 	IN       = "IN"
@@ -82,6 +86,10 @@ const (
 
 var keywords = map[string]TokenType{
 	"do":       DO,
+	"while":    WHILE,
+	"for":      FOR,
+	"break":    BREAK,
+	"continue": CONTINUE,
 	"in":       IN,
 	"print":    PRINT,
 	"BEGIN":    BEGIN,

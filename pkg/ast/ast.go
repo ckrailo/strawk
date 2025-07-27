@@ -203,6 +203,80 @@ func (is *IfStatement) String() string {
 	return out.String()
 }
 
+type WhileStatement struct {
+	Token          token.Token
+	Condition      Expression
+	Block          *ActionBlock
+	ShouldBreak    bool
+	ShouldContinue bool
+}
+
+func (ws *WhileStatement) statementNode()       {}
+func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
+func (ws *WhileStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
+type DoWhileStatement struct {
+	Token          token.Token
+	Condition      Expression
+	Block          *ActionBlock
+	ShouldBreak    bool
+	ShouldContinue bool
+}
+
+func (ds *DoWhileStatement) statementNode()       {}
+func (ds *DoWhileStatement) TokenLiteral() string { return ds.Token.Literal }
+func (ds *DoWhileStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
+type ForStatement struct {
+	Token          token.Token
+	Initialization Statement
+	Condition      Expression
+	Action         Statement
+	Block          *ActionBlock
+	ShouldBreak    bool
+	ShouldContinue bool
+}
+
+func (fs *ForStatement) statementNode()       {}
+func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode()       {}
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
+type BreakStatement struct {
+	Token token.Token
+}
+
+func (bs *BreakStatement) statementNode()       {}
+func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+func (bs *BreakStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
 // Expressions
 
 type CallExpression struct {

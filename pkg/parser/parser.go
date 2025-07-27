@@ -196,6 +196,16 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBeginStatement()
 	case token.END:
 		return p.parseEndStatement()
+	case token.WHILE:
+		return p.parseWhileStatement()
+	case token.DO:
+		return p.parseDoWhileStatement()
+	case token.FOR:
+		return p.parseForStatement()
+	case token.BREAK:
+		return p.parseBreakStatement()
+	case token.CONTINUE:
+		return p.parseContinueStatement()
 	case token.IF:
 		return p.parseIfStatement()
 	case token.PRINT:
@@ -376,6 +386,73 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 		stmt.Else = p.parseBlock()
 	}
 	return stmt
+}
+
+func (p *Parser) parseWhileStatement() *ast.WhileStatement {
+	if !p.curTokenIs(token.WHILE) {
+		panic("Expected while")
+	}
+	p.nextToken()
+	condition := p.parseExpression(LOWEST)
+	loop := p.parseBlock()
+	return &ast.WhileStatement{Condition: condition, Block: loop}
+}
+
+func (p *Parser) parseDoWhileStatement() *ast.DoWhileStatement {
+	if !p.curTokenIs(token.DO) {
+		panic("Expected do")
+	}
+	p.nextToken()
+	loop := p.parseBlock()
+	if !p.curTokenIs(token.WHILE) {
+		panic("Expected while")
+	}
+	p.nextToken()
+	condition := p.parseExpression(LOWEST)
+	return &ast.DoWhileStatement{Condition: condition, Block: loop}
+}
+
+func (p *Parser) parseForStatement() *ast.ForStatement {
+	if !p.curTokenIs(token.FOR) {
+		panic("Expected do")
+	}
+	p.nextToken()
+	if !p.curTokenIs(token.LPAREN) {
+		panic("Expected (")
+	}
+	p.nextToken()
+	init := p.parseStatement()
+	if !p.curTokenIs(token.SEMICOLON) {
+		panic("Expected ;")
+	}
+	p.nextToken()
+	condition := p.parseExpression(LOWEST)
+	if !p.curTokenIs(token.SEMICOLON) {
+		panic("Expected ;")
+	}
+	p.nextToken()
+	action := p.parseStatement()
+	if !p.curTokenIs(token.RPAREN) {
+		panic("Expected )")
+	}
+	p.nextToken()
+	block := p.parseBlock()
+	return &ast.ForStatement{
+		Initialization: init,
+		Condition:      condition,
+		Action:         action,
+		Block:          block,
+	}
+}
+
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	p.nextToken()
+	return &ast.BreakStatement{}
+}
+
+func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
+	p.nextToken()
+	return &ast.ContinueStatement{}
 }
 
 func (p *Parser) parsePrintStatement() *ast.PrintStatement {
