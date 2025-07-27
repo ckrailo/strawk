@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota
 	LOWEST
+	MEMBERSHIP  // expr in array
 	TERNARY     // ?
 	EQUALITY    // ==
 	CONCATENATE // implied
@@ -19,10 +20,12 @@ const (
 	PRODUCT     // *, /, %
 	EXPONENT    // ^
 	PREFIX      // -X or !X
+	INDEX       // []
 	CALL        // myFunction(X)
 )
 
 var precedences = map[token.TokenType]int{
+	token.IN:       MEMBERSHIP,
 	token.TERNARY:  TERNARY,
 	token.EQ:       EQUALITY,
 	token.NOT_EQ:   EQUALITY,
@@ -36,6 +39,7 @@ var precedences = map[token.TokenType]int{
 	token.SLASH:    PRODUCT,
 	token.MODULO:   PRODUCT,
 	token.EXPONENT: EXPONENT,
+	token.LBRACKET: INDEX,
 	token.LPAREN:   CALL,
 }
 
@@ -88,8 +92,10 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LTEQ, p.parseInfixExpression)
 	p.registerInfix(token.GTEQ, p.parseInfixExpression)
+	p.registerInfix(token.IN, p.parseArrayMembershipExpression)
 
 	p.registerInfix(token.TERNARY, p.parseTernaryExpression)
+	p.registerInfix(token.LBRACKET, p.parseArrayIndexExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	// Read two tokens, so curToken and peekToken are both set
 	p.nextToken()
@@ -250,7 +256,9 @@ func (p *Parser) parseAssignStatement(targets []ast.Expression) *ast.AssignState
 	for _, expr := range targets {
 		switch expr.(type) {
 		case *ast.Identifier:
-			stmt.Targets = append(stmt.Targets, expr.(*ast.Identifier))
+			stmt.Targets = append(stmt.Targets, expr)
+		case *ast.ArrayIndexExpression:
+			stmt.Targets = append(stmt.Targets, expr)
 		default:
 			panic("found non-identifier expression on lhs of assign statement")
 		}
@@ -350,8 +358,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 	leftExp := prefix()
 
-	if !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON) && precedence < p.curPrecedence() {
-		for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON) && precedence < p.curPrecedence() {
+	if !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON, token.RBRACKET) && precedence < p.curPrecedence() {
+		for !p.curTokenIs(token.SEMICOLON, token.COMMA, token.ASSIGN, token.NEWLINE, token.ASSIGNPLUS, token.LBRACE, token.COLON, token.RBRACKET) && precedence < p.curPrecedence() {
 			infix := p.infixParseFns[p.curToken.Type]
 			if infix == nil {
 				return leftExp
@@ -362,8 +370,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	}
 
 	_, pok := p.prefixParseFns[p.curToken.Type]
-	_, iok := p.infixParseFns[p.curToken.Type]
-	if pok || iok && precedence <= p.curPrecedence() {
+	if pok && precedence <= p.curPrecedence() {
 		return p.parseConcatenateExpression(leftExp)
 	}
 	return leftExp
@@ -477,13 +484,20 @@ func (p *Parser) parseCallExpression(function ast.Expression) ast.Expression {
 
 func (p *Parser) parseGroupedExpression() ast.Expression {
 	p.nextToken()
-	exp := p.parseExpression(LOWEST)
+
+	exprs := p.parseExpressionList(token.RPAREN)
+	var expr ast.Expression
+	if len(exprs) > 1 {
+		expr = &ast.ArrayIndexExpression{IndexList: exprs}
+	} else {
+		expr = exprs[0]
+	}
 	if !p.curTokenIs(token.RPAREN) {
 		panic("expected (")
 		// p.addError(fmt.Sprintf("expected ), got %s %s", p.curToken.Type, p.curToken.Literal))
 	}
 	p.nextToken()
-	return exp
+	return expr
 }
 
 func (p *Parser) parseTernaryExpression(expr ast.Expression) ast.Expression {
@@ -497,4 +511,33 @@ func (p *Parser) parseTernaryExpression(expr ast.Expression) ast.Expression {
 	p.nextToken()
 	ternaryExpr.IfFalse = p.parseExpression(LOWEST)
 	return ternaryExpr
+}
+
+func (p *Parser) parseArrayIndexExpression(expr ast.Expression) ast.Expression {
+	var id string
+	switch expr.(type) {
+	case *ast.Identifier:
+		id = expr.String()
+	default:
+		panic("Attempt to address array with non-identifier")
+	}
+	p.nextToken()
+	indicies := p.parseExpressionList()
+	p.nextToken()
+	return &ast.ArrayIndexExpression{ArrayName: id, IndexList: indicies}
+}
+
+func (p *Parser) parseArrayMembershipExpression(left ast.Expression) ast.Expression {
+	expr := &ast.InfixExpression{
+		Token:    p.curToken,
+		Operator: p.curToken.Literal,
+		Left:     left,
+	}
+	p.nextToken()
+	if !p.curTokenIs(token.IDENT) {
+		panic("parse error in key in array expression: expected identifier on the right.")
+	}
+	right := p.parseExpression(LOWEST)
+	expr.Right = right
+	return expr
 }

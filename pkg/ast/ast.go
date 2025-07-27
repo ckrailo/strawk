@@ -128,7 +128,7 @@ func (es *EndStatement) String() string {
 
 type AssignStatement struct {
 	Token   token.Token // the { token
-	Targets []*Identifier
+	Targets []Expression
 	Values  []Expression
 }
 
@@ -341,3 +341,44 @@ type RegexLiteral struct {
 func (rl *RegexLiteral) expressionNode()      {}
 func (rl *RegexLiteral) TokenLiteral() string { return rl.Token.Literal }
 func (rl *RegexLiteral) String() string       { return rl.Value }
+
+type AssociativeArray struct {
+	Token token.Token
+	Array map[string]Expression
+}
+
+func (aa *AssociativeArray) expressionNode()      {}
+func (aa *AssociativeArray) TokenLiteral() string { return aa.Token.Literal }
+func (aa *AssociativeArray) String() string {
+	var out bytes.Buffer
+	entries := []string{}
+	for k, v := range aa.Array {
+		entries = append(entries, k+" : "+v.String())
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(entries, ", "))
+	out.WriteString("}")
+
+	return out.String()
+}
+
+type ArrayIndexExpression struct {
+	Token     token.Token
+	ArrayName string
+	IndexList []Expression
+}
+
+func (aie *ArrayIndexExpression) expressionNode()      {}
+func (aie *ArrayIndexExpression) TokenLiteral() string { return aie.Token.Literal }
+func (aie *ArrayIndexExpression) String() string {
+	var out bytes.Buffer
+	indicies := []string{}
+
+	for _, i := range aie.IndexList {
+		indicies = append(indicies, i.String())
+	}
+	out.WriteString(aie.ArrayName + "[" + strings.Join(indicies, ", ") + "]")
+
+	return out.String()
+}

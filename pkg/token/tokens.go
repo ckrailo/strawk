@@ -29,6 +29,8 @@ const (
 	COMMA         = ","
 	LBRACE        = "{"
 	RBRACE        = "}"
+	LBRACKET      = "["
+	RBRACKET      = "]"
 
 	BANG = "!"
 
@@ -64,19 +66,10 @@ const (
 
 	//Keywords
 	DO       = "DO"
-	DOUNTIL  = "DOUNTIL"
 	BEGIN    = "BEGIN"
 	END      = "END"
-	CAPTURE  = "CAPTURE"
-	LABEL    = "LABEL"
-	LET      = "LET"
+	IN       = "IN"
 	PRINT    = "PRINT"
-	PRINTLN  = "PRINTLN"
-	CLEAR    = "CLEAR"
-	REWIND   = "REWIND"
-	FASTFWD  = "FASTFORWARD"
-	PAUSE    = "PAUSE"
-	PLAY     = "PLAY"
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
@@ -84,23 +77,15 @@ const (
 )
 
 var keywords = map[string]TokenType{
-	"do":          DO,
-	"dountil":     DOUNTIL,
-	"capture":     CAPTURE,
-	"print":       PRINT,
-	"println":     PRINTLN,
-	"BEGIN":       BEGIN,
-	"END":         END,
-	"clear":       CLEAR,
-	"let":         LET,
-	"rewind":      REWIND,
-	"fastforward": FASTFWD,
-	"pause":       PAUSE,
-	"play":        PLAY,
-	"if":          IF,
-	"else":        ELSE,
-	"function":    FUNCTION,
-	"return":      RETURN,
+	"do":       DO,
+	"in":       IN,
+	"print":    PRINT,
+	"BEGIN":    BEGIN,
+	"END":      END,
+	"if":       IF,
+	"else":     ELSE,
+	"function": FUNCTION,
+	"return":   RETURN,
 }
 
 func LookupIdent(ident string) TokenType {

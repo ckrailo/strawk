@@ -32,7 +32,12 @@ type CallStackEntry struct {
 }
 
 func NewInterpreter(program *ast.Program, input string) *Interpreter {
-	i := &Interpreter{Program: program, Input: input, GlobalVariables: make(map[string]ast.Expression), StdLibFunctions: make(map[string]func([]ast.Expression) ast.Expression)}
+	i := &Interpreter{
+		Program:         program,
+		Input:           input,
+		GlobalVariables: make(map[string]ast.Expression),
+		StdLibFunctions: make(map[string]func([]ast.Expression) ast.Expression),
+	}
 	i.Stack = append(i.Stack, CallStackEntry{})
 	i.Stack[0].LocalVariables = make(map[string]ast.Expression)
 	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
@@ -82,24 +87,105 @@ func (i *Interpreter) consumeInput() {
 	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
 }
 
-func (i *Interpreter) lookupVar(varName string) ast.Expression {
-	val, ok := i.Stack[len(i.Stack)-1].LocalVariables[varName]
-	if ok {
-		return val
+func (i *Interpreter) attemptArrayLookup(indicies []ast.Expression, variable ast.Expression) ast.Expression {
+	if indicies == nil {
+		switch variable.(type) {
+		case *ast.StringLiteral:
+			return variable
+		case *ast.NumericLiteral:
+			return variable
+		case *ast.AssociativeArray:
+			return variable
+		default:
+			panic("Unknown variable type")
+		}
+	} else {
+		switch variable.(type) {
+		case *ast.StringLiteral:
+			panic("attempt to address scalar with index")
+		case *ast.NumericLiteral:
+			panic("attempt to address scalar with index")
+		case *ast.AssociativeArray:
+			val, ok := variable.(*ast.AssociativeArray).Array[i.transformArrayLookupExpression(indicies)]
+			if ok {
+				return val
+			}
+			return &ast.StringLiteral{Value: ""}
+		default:
+			panic("Unknown variable type")
+		}
 	}
-	val, ok = i.GlobalVariables[varName]
+}
+
+func (i *Interpreter) transformArrayLookupExpression(indicies []ast.Expression) string {
+	var idxs []string
+	for _, x := range indicies {
+		idxs = append(idxs, i.doExpression(x).String())
+	}
+	return strings.Join(idxs, ",")
+}
+
+func (i *Interpreter) lookupVar(varName ast.Expression) ast.Expression {
+	var id string
+	var index []ast.Expression
+	switch varName.(type) {
+	case *ast.Identifier:
+		id = varName.(*ast.Identifier).Value
+		index = nil
+	case *ast.ArrayIndexExpression:
+		id = varName.(*ast.ArrayIndexExpression).ArrayName
+		index = varName.(*ast.ArrayIndexExpression).IndexList
+	default:
+		panic("Unexpected expression type in lookupVar")
+	}
+	val, ok := i.Stack[len(i.Stack)-1].LocalVariables[id]
 	if ok {
-		return val
+		return i.attemptArrayLookup(index, val)
+	}
+	val, ok = i.GlobalVariables[id]
+	if ok {
+		return i.attemptArrayLookup(index, val)
 	}
 	return &ast.StringLiteral{Value: ""}
 }
 
-func (i *Interpreter) setVar(varName string, value ast.Expression) {
-	_, ok := i.Stack[len(i.Stack)-1].LocalVariables[varName]
+func (i *Interpreter) setVar(varName ast.Expression, value ast.Expression) {
+	var id string
+	var index []ast.Expression
+	switch varName.(type) {
+	case *ast.Identifier:
+		id = varName.(*ast.Identifier).Value
+		index = nil
+	case *ast.ArrayIndexExpression:
+		id = varName.(*ast.ArrayIndexExpression).ArrayName
+		index = varName.(*ast.ArrayIndexExpression).IndexList
+	default:
+		panic("Unexpected expression type in lookupVar")
+	}
+	_, ok := i.Stack[len(i.Stack)-1].LocalVariables[id]
 	if ok {
-		i.Stack[len(i.Stack)-1].LocalVariables[varName] = value
+		if index == nil {
+			i.Stack[len(i.Stack)-1].LocalVariables[id] = value
+		} else {
+		}
 	} else {
-		i.GlobalVariables[varName] = value
+		if index == nil {
+			i.GlobalVariables[id] = value
+		} else {
+			m, ok := i.GlobalVariables[id]
+			if ok {
+				switch m.(type) {
+				case *ast.AssociativeArray:
+					m.(*ast.AssociativeArray).Array[i.transformArrayLookupExpression(index)] = value
+				default:
+					i.GlobalVariables[id] = &ast.AssociativeArray{Array: make(map[string]ast.Expression)}
+					i.GlobalVariables[id].(*ast.AssociativeArray).Array[i.transformArrayLookupExpression(index)] = value
+				}
+			} else {
+				i.GlobalVariables[id] = &ast.AssociativeArray{Array: make(map[string]ast.Expression)}
+				i.GlobalVariables[id].(*ast.AssociativeArray).Array[i.transformArrayLookupExpression(index)] = value
+			}
+		}
 	}
 }
 
@@ -165,7 +251,7 @@ func (i *Interpreter) doPrintStatement(stmt *ast.PrintStatement) {
 
 func (i *Interpreter) doAssignStatement(stmt *ast.AssignStatement) {
 	for idx, target := range stmt.Targets {
-		i.setVar(target.String(), i.doExpression(stmt.Values[idx]))
+		i.setVar(target, i.doExpression(stmt.Values[idx]))
 	}
 }
 
@@ -177,7 +263,7 @@ func (i *Interpreter) doAssignAndModifyStatement(stmt *ast.AssignAndModifyStatem
 	default:
 		panic("Unknown Operator.")
 	}
-	i.setVar(stmt.Target.String(), newValue)
+	i.setVar(stmt.Target, newValue)
 }
 
 func (i *Interpreter) doExpressionList(expressions []ast.Expression) []ast.Expression {
@@ -199,7 +285,9 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 	case *ast.PostfixExpression:
 		return i.doPostfixExpression(expr.(*ast.PostfixExpression))
 	case *ast.Identifier:
-		return i.lookupVar(expr.(*ast.Identifier).Value)
+		return i.lookupVar(expr)
+	case *ast.ArrayIndexExpression:
+		return i.lookupVar(expr)
 	}
 	return expr
 }
@@ -238,19 +326,27 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 		return i.doLessThanEqualTo(left, right)
 	case ">=":
 		return i.doGreaterThanEqualTo(left, right)
+	case "in":
+		return i.doArrayMembership(left, right)
 	}
 	return nil
 }
 
 func (i *Interpreter) doPostfixExpression(expr *ast.PostfixExpression) ast.Expression {
+	variable := i.lookupVar(expr.Left)
+	value := &ast.StringLiteral{}
+	switch variable.(type) {
+	case *ast.ArrayIndexExpression:
+		panic("attempt to postfix array")
+	default:
+		value.Value = variable.String()
+	}
 	switch expr.Operator {
 	case "++":
-		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
-		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "+", Right: &ast.NumericLiteral{Value: 1}}))
+		i.setVar(expr.Left, i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "+", Right: &ast.NumericLiteral{Value: 1}}))
 		return value
 	case "--":
-		value := &ast.StringLiteral{Value: i.lookupVar(expr.Left.String()).String()}
-		i.setVar(expr.Left.String(), i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "-", Right: &ast.NumericLiteral{Value: 1}}))
+		i.setVar(expr.Left, i.doExpression(&ast.InfixExpression{Left: expr.Left, Operator: "-", Right: &ast.NumericLiteral{Value: 1}}))
 		return value
 	default:
 		panic("Unknown postfix operator!")
@@ -268,7 +364,13 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 
 	switch left.(type) {
 	case *ast.Identifier:
-		str = i.lookupVar(left.(*ast.Identifier).Value).String()
+		lookup := i.lookupVar(left)
+		switch lookup.(type) {
+		case *ast.ArrayIndexExpression:
+			panic("attempt to postfix array")
+		default:
+			str = lookup.String()
+		}
 	case *ast.StringLiteral:
 		str = (left.(*ast.StringLiteral).Value)
 	default:
@@ -467,4 +569,33 @@ func (i *Interpreter) doTernaryExpression(expr *ast.TernaryExpression) ast.Expre
 		return i.doExpression(expr.IfTrue)
 	}
 	return i.doExpression(expr.IfFalse)
+}
+
+func isKeyInExpression(key string, expr ast.Expression) bool {
+	switch expr.(type) {
+	case *ast.AssociativeArray:
+		_, ok := expr.(*ast.AssociativeArray).Array[key]
+		return ok
+	default:
+		panic("attempt to test membership of non-array")
+	}
+}
+
+func (i *Interpreter) doArrayMembership(left ast.Expression, right ast.Expression) ast.Expression {
+	var key string
+	switch left.(type) {
+	case *ast.ArrayIndexExpression:
+		key = i.transformArrayLookupExpression(left.(*ast.ArrayIndexExpression).IndexList)
+	default:
+		key = i.doExpression(left).String()
+	}
+	var m map[string]ast.Expression
+	switch right.(type) {
+	case *ast.AssociativeArray:
+		m = right.(*ast.AssociativeArray).Array
+	default:
+		panic("membership test against non-array")
+	}
+	_, ok := m[key]
+	return boolToExpression(ok)
 }

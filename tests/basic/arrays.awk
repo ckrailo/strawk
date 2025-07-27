@@ -1,0 +1,7 @@
+BEGIN {
+  a[1] = "a"
+  print a[1]
+  print a[2]
+  print 1 in a
+  print 2 in a
+}
