@@ -33,6 +33,8 @@ const (
 	RBRACKET      = "]"
 
 	BANG = "!"
+	AND  = "&&"
+	OR   = "||"
 
 	ASSIGNPLUS     = "+="
 	PLUS           = "+"

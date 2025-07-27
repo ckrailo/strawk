@@ -217,6 +217,22 @@ func (l *Lexer) NextToken() token.Token {
 		} else {
 			tok = l.newToken(token.BANG, "!")
 		}
+	case '&':
+		lookahead := l.peek(1)
+		if lookahead == "&" {
+			l.readChar()
+			tok = l.newToken(token.AND, "&&")
+		} else {
+			tok = l.newToken(token.ILLEGAL, string(l.ch))
+		}
+	case '|':
+		lookahead := l.peek(1)
+		if lookahead == "|" {
+			l.readChar()
+			tok = l.newToken(token.OR, "||")
+		} else {
+			tok = l.newToken(token.ILLEGAL, string(l.ch))
+		}
 	case '<':
 		lookahead := l.peek(1)
 		if lookahead == "=" {

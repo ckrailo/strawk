@@ -274,6 +274,8 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 	switch expr.(type) {
 	case *ast.TernaryExpression:
 		return i.doTernaryExpression(expr.(*ast.TernaryExpression))
+	case *ast.PrefixExpression:
+		return i.doPrefixExpression(expr.(*ast.PrefixExpression))
 	case *ast.InfixExpression:
 		return i.doInfixExpression(expr.(*ast.InfixExpression))
 	case *ast.CallExpression:
@@ -286,6 +288,19 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 		return i.lookupVar(expr)
 	}
 	return expr
+}
+
+func (i *Interpreter) doPrefixExpression(expression *ast.PrefixExpression) ast.Expression {
+
+	expr := i.doExpression(expression.Right)
+	switch expression.Operator {
+	case "!":
+		return invertBool(expr)
+	case "-":
+		return negate(expr)
+	default:
+		panic("Unkown prefix operator")
+	}
 }
 
 func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Expression {
@@ -326,6 +341,12 @@ func (i *Interpreter) doInfixExpression(expression *ast.InfixExpression) ast.Exp
 		return i.doGreaterThanEqualTo(left, right)
 	case "in":
 		return i.doArrayMembership(left, right)
+	case "&&":
+		return i.doBooleanAnd(left, right)
+	case "||":
+		return i.doBooleanOr(left, right)
+	default:
+		panic("Unknown Operator!")
 	}
 	return nil
 }
@@ -502,16 +523,21 @@ func invertBool(expr ast.Expression) ast.Expression {
 	}
 }
 
+func negate(expr ast.Expression) ast.Expression {
+	switch expr.(type) {
+	case *ast.StringLiteral:
+		return &ast.NumericLiteral{Value: 0.0}
+	case *ast.NumericLiteral:
+		return &ast.NumericLiteral{Value: expr.(*ast.NumericLiteral).Value * -1.0}
+	default:
+		panic("error inverting expression!")
+	}
+}
+
 func (i *Interpreter) doEquality(left ast.Expression, right ast.Expression) ast.Expression {
 	lhs := convertLiteralForStringOp(left)
 	rhs := convertLiteralForStringOp(right)
 	return boolToExpression(lhs == rhs)
-}
-
-func (i *Interpreter) doNotEquals(left ast.Expression, right ast.Expression) ast.Expression {
-	lhs := convertLiteralForStringOp(left)
-	rhs := convertLiteralForStringOp(right)
-	return boolToExpression(lhs != rhs)
 }
 
 func convertLiteralForComparisonOp(expr ast.Expression) (float64, error) {
@@ -614,4 +640,18 @@ func (i *Interpreter) doArrayMembership(left ast.Expression, right ast.Expressio
 	}
 	_, ok := m[key]
 	return boolToExpression(ok)
+}
+
+func (i *Interpreter) doBooleanAnd(left ast.Expression, right ast.Expression) ast.Expression {
+	l := ExpressionToBool(left)
+	r := ExpressionToBool(right)
+	result := l && r
+	return boolToExpression(result)
+}
+
+func (i *Interpreter) doBooleanOr(left ast.Expression, right ast.Expression) ast.Expression {
+	l := ExpressionToBool(left)
+	r := ExpressionToBool(right)
+	result := l || r
+	return boolToExpression(result)
 }
