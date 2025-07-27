@@ -34,6 +34,12 @@ type Program struct {
 	Statements []Statement
 }
 
+type ActionBlock struct {
+	Statements []Statement
+}
+
+func (ab *ActionBlock) GetStatements() []Statement { return ab.Statements }
+
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
 		return p.Statements[0].TokenLiteral()
@@ -72,16 +78,16 @@ func (es *ExpressionStatement) String() string {
 type ActionBlockStatement struct {
 	Token      token.Token // the { token
 	Conditon   Expression
-	Statements []Statement
+	Statements *ActionBlock
 }
 
 func (as *ActionBlockStatement) statementNode()             {}
 func (as *ActionBlockStatement) TokenLiteral() string       { return as.Token.Literal }
-func (as *ActionBlockStatement) GetStatements() []Statement { return as.Statements }
+func (as *ActionBlockStatement) GetStatements() []Statement { return as.Statements.Statements }
 func (as *ActionBlockStatement) String() string {
 	var out bytes.Buffer
 
-	for _, s := range as.Statements {
+	for _, s := range as.Statements.Statements {
 		out.WriteString(s.String())
 	}
 
@@ -178,6 +184,21 @@ func (ps *PrintStatement) String() string {
 			out.WriteString(",")
 		}
 	}
+
+	return out.String()
+}
+
+type IfStatement struct {
+	Token        token.Token
+	Conditions   []Expression
+	Consequences []*ActionBlock
+	Else         *ActionBlock
+}
+
+func (is *IfStatement) statementNode()       {}
+func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *IfStatement) String() string {
+	var out bytes.Buffer
 
 	return out.String()
 }

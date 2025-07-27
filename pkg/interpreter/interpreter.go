@@ -14,8 +14,8 @@ import (
 )
 
 type Interpreter struct {
-	BeginBlock                   *ast.BeginStatement
-	EndBlock                     *ast.EndStatement
+	BeginBlocks                  []*ast.BeginStatement
+	EndBlocks                    []*ast.EndStatement
 	Rules                        []ast.Statement
 	Program                      *ast.Program
 	Input                        string
@@ -45,9 +45,9 @@ func NewInterpreter(program *ast.Program, input string) *Interpreter {
 	for _, stmt := range program.Statements {
 		switch stmt.(type) {
 		case *ast.BeginStatement:
-			i.BeginBlock = stmt.(*ast.BeginStatement)
+			i.BeginBlocks = append(i.BeginBlocks, stmt.(*ast.BeginStatement))
 		case *ast.EndStatement:
-			i.EndBlock = stmt.(*ast.EndStatement)
+			i.EndBlocks = append(i.EndBlocks, stmt.(*ast.EndStatement))
 		default:
 			i.Rules = append(i.Rules, stmt)
 		}
@@ -58,7 +58,9 @@ func NewInterpreter(program *ast.Program, input string) *Interpreter {
 }
 
 func (i *Interpreter) Run() {
-	i.doBlock(i.BeginBlock)
+	for _, block := range i.BeginBlocks {
+		i.doBlock(block)
+	}
 	i.advanceInput()
 	for i.InputPostion < len(i.Input) {
 		for _, stmt := range i.Rules {
@@ -66,7 +68,9 @@ func (i *Interpreter) Run() {
 		}
 		i.advanceInput()
 	}
-	// i.doBlock(i.EndBlock)
+	for _, block := range i.EndBlocks {
+		i.doBlock(block)
+	}
 }
 
 func (i *Interpreter) advanceInput() {
@@ -205,6 +209,8 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 		i.doAssignStatement(stmt.(*ast.AssignStatement))
 	case *ast.AssignAndModifyStatement:
 		i.doAssignAndModifyStatement(stmt.(*ast.AssignAndModifyStatement))
+	case *ast.IfStatement:
+		i.doIfStatement(stmt.(*ast.IfStatement))
 	default:
 		panic("Unexpected statement type")
 	}
@@ -217,6 +223,8 @@ func (i *Interpreter) doBlock(block ast.Block) {
 	case *ast.BeginStatement:
 		shouldExecuteBlock = true
 	case *ast.EndStatement:
+		shouldExecuteBlock = true
+	case *ast.ActionBlock:
 		shouldExecuteBlock = true
 	case *ast.ActionBlockStatement:
 		shouldExecuteBlock = i.evaluateActionBlockConditon(block.(*ast.ActionBlockStatement))
@@ -270,6 +278,20 @@ func (i *Interpreter) doAssignAndModifyStatement(stmt *ast.AssignAndModifyStatem
 		panic("Unknown Operator.")
 	}
 	i.setVar(stmt.Target, newValue)
+}
+
+func (i *Interpreter) doIfStatement(stmt *ast.IfStatement) {
+	shouldExecuteElse := true
+	for idx, condition := range stmt.Conditions {
+		if ExpressionToBool(i.doExpression(condition)) {
+			shouldExecuteElse = false
+			i.doBlock(stmt.Consequences[idx])
+			break
+		}
+	}
+	if shouldExecuteElse {
+		i.doBlock(stmt.Else)
+	}
 }
 
 func (i *Interpreter) doExpressionList(expressions []ast.Expression) []ast.Expression {

@@ -196,8 +196,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBeginStatement()
 	case token.END:
 		return p.parseEndStatement()
-	// case token.RETURN:
-	// 	return p.parseReturnStatement()
+	case token.IF:
+		return p.parseIfStatement()
 	case token.PRINT:
 		return p.parsePrintStatement()
 	case token.NEWLINE:
@@ -324,7 +324,13 @@ func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.Act
 	case *ast.RegexLiteral:
 		stmt.Conditon = &ast.InfixExpression{Left: &ast.Identifier{Value: "$0"}, Operator: "~$0", Right: stmt.Conditon}
 	}
+	stmt.Statements = p.parseBlock()
 
+	return stmt
+}
+
+func (p *Parser) parseBlock() *ast.ActionBlock {
+	block := &ast.ActionBlock{}
 	if !p.curTokenIs(token.LBRACE) {
 		panic("Expected {")
 	}
@@ -334,12 +340,41 @@ func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.Act
 	for !p.curTokenIs(token.RBRACE) {
 		s := p.parseStatement()
 		if s != nil {
-			stmt.Statements = append(stmt.Statements, s)
+			block.Statements = append(block.Statements, s)
 		}
 	}
 
 	p.nextToken()
+	return block
+}
 
+func (p *Parser) parseIfStatement() *ast.IfStatement {
+	if !p.curTokenIs(token.IF) {
+		panic("Expected if")
+	}
+	p.nextToken()
+	condition := p.parseExpression(LOWEST)
+
+	if !p.curTokenIs(token.LBRACE) {
+		panic("Expected {")
+	}
+	consequence := p.parseBlock()
+	stmt := &ast.IfStatement{}
+	stmt.Conditions = append(stmt.Conditions, condition)
+	stmt.Consequences = append(stmt.Consequences, consequence)
+	// for p.curTokenIs(token.NEWLINE) {
+	// 	p.nextToken()
+	// }
+	for p.curTokenIs(token.ELSE) && p.peekTokenIs(token.IF) {
+		p.nextToken()
+		p.nextToken()
+		stmt.Conditions = append(stmt.Conditions, p.parseExpression(LOWEST))
+		stmt.Consequences = append(stmt.Consequences, p.parseBlock())
+	}
+	if p.curTokenIs(token.ELSE) && p.peekTokenIs(token.LBRACE) {
+		p.nextToken()
+		stmt.Else = p.parseBlock()
+	}
 	return stmt
 }
 
