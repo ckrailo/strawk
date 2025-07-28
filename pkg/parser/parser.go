@@ -80,9 +80,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
 
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
-	// p.registerPrefix(token.MINUS, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.LPAREN, p.parseGroupedExpression)
-	// p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -196,6 +195,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBeginStatement()
 	case token.END:
 		return p.parseEndStatement()
+	case token.FUNCTION:
+		return p.parseFunctionLiteral()
 	case token.WHILE:
 		return p.parseWhileStatement()
 	case token.DO:
@@ -206,6 +207,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseBreakStatement()
 	case token.CONTINUE:
 		return p.parseContinueStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	case token.IF:
 		return p.parseIfStatement()
 	case token.PRINT:
@@ -455,6 +458,11 @@ func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
 	return &ast.ContinueStatement{}
 }
 
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	p.nextToken()
+	return &ast.ReturnStatement{Value: p.parseExpression(LOWEST)}
+}
+
 func (p *Parser) parsePrintStatement() *ast.PrintStatement {
 	stmt := &ast.PrintStatement{Token: p.curToken}
 	p.nextToken()
@@ -671,4 +679,38 @@ func (p *Parser) parseArrayMembershipExpression(left ast.Expression) ast.Express
 	right := p.parseExpression(LOWEST)
 	expr.Right = right
 	return expr
+}
+
+func (p *Parser) parseFunctionLiteral() *ast.FunctionLiteral {
+	function := &ast.FunctionLiteral{}
+	if !p.curTokenIs(token.FUNCTION) {
+		panic("parse error in function: expected function keyword")
+	}
+	p.nextToken()
+	if !p.curTokenIs(token.IDENT) {
+		panic("parse error in function: expected identifier for function name.")
+	}
+	function.Name = ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
+	p.nextToken()
+	if !p.curTokenIs(token.LPAREN) {
+		panic("parse error in function: expected (")
+	}
+	for !p.curTokenIs(token.RPAREN) {
+		p.nextToken()
+		//In case no params are passed in
+		if p.curTokenIs(token.RPAREN) {
+			break
+		}
+		if !p.curTokenIs(token.IDENT) {
+			panic("Expected identifier when parsing function params")
+		}
+		function.Parameters = append(function.Parameters, ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
+		p.nextToken()
+		if !p.curTokenIs(token.COMMA) && !p.curTokenIs(token.RPAREN) {
+			panic("Expected , or ) when parsing function params")
+		}
+	}
+	p.nextToken()
+	function.Body = p.parseBlock()
+	return function
 }

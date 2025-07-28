@@ -23,6 +23,7 @@ type Interpreter struct {
 	Stack                        []CallStackEntry
 	GlobalVariables              map[string]ast.Expression
 	StdLibFunctions              map[string]func([]ast.Expression) ast.Expression
+	UserDefinedFunctions         map[string]*ast.FunctionLiteral
 	mostRecentRegexCaptureGroups map[string]ast.Expression
 }
 
@@ -33,10 +34,11 @@ type CallStackEntry struct {
 
 func NewInterpreter(program *ast.Program, input string) *Interpreter {
 	i := &Interpreter{
-		Program:         program,
-		Input:           input,
-		GlobalVariables: make(map[string]ast.Expression),
-		StdLibFunctions: make(map[string]func([]ast.Expression) ast.Expression),
+		Program:              program,
+		Input:                input,
+		GlobalVariables:      make(map[string]ast.Expression),
+		StdLibFunctions:      make(map[string]func([]ast.Expression) ast.Expression),
+		UserDefinedFunctions: make(map[string]*ast.FunctionLiteral),
 	}
 	i.Stack = append(i.Stack, CallStackEntry{})
 	i.Stack[0].LocalVariables = make(map[string]ast.Expression)
@@ -48,6 +50,8 @@ func NewInterpreter(program *ast.Program, input string) *Interpreter {
 			i.BeginBlocks = append(i.BeginBlocks, stmt.(*ast.BeginStatement))
 		case *ast.EndStatement:
 			i.EndBlocks = append(i.EndBlocks, stmt.(*ast.EndStatement))
+		case *ast.FunctionLiteral:
+			i.UserDefinedFunctions[stmt.(*ast.FunctionLiteral).Name.Value] = stmt.(*ast.FunctionLiteral)
 		default:
 			i.Rules = append(i.Rules, stmt)
 		}
@@ -560,10 +564,36 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 func (i *Interpreter) doFunctionCall(call *ast.CallExpression) ast.Expression {
 	evaluatedArgs := i.doExpressionList(call.Arguments)
 	function, ok := i.StdLibFunctions[call.Function.String()]
-	if !ok {
-		panic("Function not found!")
+	if ok {
+		return function(evaluatedArgs)
 	}
-	return function(evaluatedArgs)
+	udf, ok := i.UserDefinedFunctions[call.Function.String()]
+	if !ok {
+		panic("attempt to call non-existent function")
+	}
+
+	if len(udf.Parameters) != len(call.Arguments) {
+		panic("incorrect number of arguments to function.")
+	}
+	i.Stack = append(i.Stack, CallStackEntry{isFunction: true, LocalVariables: make(map[string]ast.Expression)})
+	for idx, param := range udf.Parameters {
+		_, ok = i.GlobalVariables[param.Value]
+		if !ok {
+			i.createLocalVar(param.Value, call.Arguments[idx])
+		}
+	}
+
+	for _, stmt := range udf.Body.Statements {
+		switch stmt.(type) {
+		case *ast.ReturnStatement:
+			i.Stack = i.Stack[:len(i.Stack)-1]
+			return i.doExpression(stmt.(*ast.ReturnStatement).Value)
+		default:
+			i.doStatement(stmt)
+		}
+	}
+	i.Stack = i.Stack[:len(i.Stack)-1]
+	return &ast.StringLiteral{Value: ""}
 }
 
 func convertLiteralForMathOp(expr ast.Expression) float64 {

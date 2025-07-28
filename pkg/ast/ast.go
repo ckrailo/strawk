@@ -39,6 +39,7 @@ type ActionBlock struct {
 }
 
 func (ab *ActionBlock) GetStatements() []Statement { return ab.Statements }
+func (ab *ActionBlock) String() string             { return "" }
 
 func (p *Program) TokenLiteral() string {
 	if len(p.Statements) > 0 {
@@ -253,13 +254,14 @@ func (fs *ForStatement) String() string {
 	return out.String()
 }
 
-type ContinueStatement struct {
+type ReturnStatement struct {
 	Token token.Token
+	Value Expression
 }
 
-func (cs *ContinueStatement) statementNode()       {}
-func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
-func (cs *ContinueStatement) String() string {
+func (cs *ReturnStatement) statementNode()       {}
+func (cs *ReturnStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ReturnStatement) String() string {
 	var out bytes.Buffer
 
 	return out.String()
@@ -272,6 +274,44 @@ type BreakStatement struct {
 func (bs *BreakStatement) statementNode()       {}
 func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
 func (bs *BreakStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
+type FunctionLiteral struct {
+	Token      token.Token // The 'fn' token
+	Name       Identifier
+	Parameters []Identifier
+	Body       *ActionBlock
+}
+
+func (fl *FunctionLiteral) statementNode()       {}
+func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FunctionLiteral) String() string {
+	var out bytes.Buffer
+
+	params := []string{}
+	for _, p := range fl.Parameters {
+		params = append(params, p.String())
+	}
+
+	out.WriteString(fl.Name.Value)
+	out.WriteString("(")
+	out.WriteString(strings.Join(params, ", "))
+	out.WriteString(") ")
+	out.WriteString(fl.Body.String())
+
+	return out.String()
+}
+
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode()       {}
+func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) String() string {
 	var out bytes.Buffer
 
 	return out.String()
