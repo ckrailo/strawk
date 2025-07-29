@@ -288,7 +288,6 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 }
 
 func (i *Interpreter) doBlock(block ast.Block) {
-	i.mostRecentRegexCaptureGroups = make(map[string]ast.Expression)
 	shouldExecuteBlock := false
 	switch block.(type) {
 	case *ast.BeginStatement:
@@ -558,6 +557,7 @@ func (i *Interpreter) doPostfixExpression(expr *ast.PostfixExpression) ast.Expre
 }
 
 func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, isReadingFromInput bool) ast.Expression {
+	i.mostRecentRegexCaptureGroups = make(map[string]ast.Expression)
 	var str string
 	var regex string
 	if isReadingFromInput && len(i.Stack) == 1 {

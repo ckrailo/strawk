@@ -302,7 +302,7 @@ func (l *Lexer) isInsideRegex() bool {
 		next = true
 	}
 	pos = l.readPosition
-	for !slices.Contains([]byte{'\n', '/'}, l.input[pos]) && pos < len(l.input) {
+	for !slices.Contains([]byte{'\n', '/'}, l.input[pos]) && pos > 0 {
 		pos -= 1
 	}
 	if l.input[pos] == '/' {
