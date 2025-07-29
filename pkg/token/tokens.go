@@ -74,6 +74,7 @@ const (
 	FOR      = "FOR"
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
+	NEXT     = "NEXT"
 	BEGIN    = "BEGIN"
 	END      = "END"
 	IN       = "IN"
@@ -90,6 +91,7 @@ var keywords = map[string]TokenType{
 	"for":      FOR,
 	"break":    BREAK,
 	"continue": CONTINUE,
+	"next":     NEXT,
 	"in":       IN,
 	"print":    PRINT,
 	"BEGIN":    BEGIN,

@@ -39,6 +39,6 @@ func main() {
 	l := lexer.New(string(program))
 	p := parser.New(l)
 	parsedprogram := p.ParseProgram()
-	i := interpreter.NewInterpreter(parsedprogram, string(input))
-	i.Run()
+	i := interpreter.NewInterpreter(parsedprogram, os.Stdout)
+	i.Run(string(input))
 }

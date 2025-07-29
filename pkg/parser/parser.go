@@ -463,6 +463,11 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return &ast.ReturnStatement{Value: p.parseExpression(LOWEST)}
 }
 
+func (p *Parser) parseNextStatement() *ast.NextStatement {
+	p.nextToken()
+	return &ast.NextStatement{}
+}
+
 func (p *Parser) parsePrintStatement() *ast.PrintStatement {
 	stmt := &ast.PrintStatement{Token: p.curToken}
 	p.nextToken()

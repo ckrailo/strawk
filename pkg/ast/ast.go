@@ -317,6 +317,18 @@ func (cs *ContinueStatement) String() string {
 	return out.String()
 }
 
+type NextStatement struct {
+	Token token.Token
+}
+
+func (ns *NextStatement) statementNode()       {}
+func (ns *NextStatement) TokenLiteral() string { return ns.Token.Literal }
+func (ns *NextStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
 // Expressions
 
 type CallExpression struct {

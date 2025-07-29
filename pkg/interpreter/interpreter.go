@@ -2,7 +2,7 @@ package interpreter
 
 import (
 	"errors"
-	"fmt"
+	"io"
 	"math"
 	"regexp"
 	"strconv"
@@ -17,8 +17,12 @@ type Interpreter struct {
 	BeginBlocks                  []*ast.BeginStatement
 	EndBlocks                    []*ast.EndStatement
 	Rules                        []ast.Statement
+	curStatement                 ast.Statement //For reporting line number a runtime error hits
 	Program                      *ast.Program
 	Input                        string
+	Output                       io.Writer
+	WasNextStatementHit          bool
+	WasFatalErrorHit             bool
 	InputPostion                 int
 	Stack                        []CallStackEntry
 	GlobalVariables              map[string]ast.Expression
@@ -32,17 +36,15 @@ type CallStackEntry struct {
 	LocalVariables map[string]ast.Expression
 }
 
-func NewInterpreter(program *ast.Program, input string) *Interpreter {
+func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 	i := &Interpreter{
 		Program:              program,
-		Input:                input,
+		Output:               out,
 		GlobalVariables:      make(map[string]ast.Expression),
 		StdLibFunctions:      make(map[string]func([]ast.Expression) ast.Expression),
 		UserDefinedFunctions: make(map[string]*ast.FunctionLiteral),
 	}
-	i.Stack = append(i.Stack, CallStackEntry{})
-	i.Stack[0].LocalVariables = make(map[string]ast.Expression)
-	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
+	i.resetStack()
 	i.InputPostion = 0
 	for _, stmt := range program.Statements {
 		switch stmt.(type) {
@@ -61,7 +63,8 @@ func NewInterpreter(program *ast.Program, input string) *Interpreter {
 	return i
 }
 
-func (i *Interpreter) Run() {
+func (i *Interpreter) Run(input string) {
+	i.Input = input
 	for _, block := range i.BeginBlocks {
 		i.doBlock(block)
 	}
@@ -69,6 +72,14 @@ func (i *Interpreter) Run() {
 	for i.InputPostion < len(i.Input) {
 		for _, stmt := range i.Rules {
 			i.doStatement(stmt)
+			if i.WasNextStatementHit {
+				i.WasNextStatementHit = false
+				i.resetStack()
+				break
+			}
+			if i.WasFatalErrorHit {
+				return
+			}
 		}
 		i.advanceInput()
 	}
@@ -92,6 +103,13 @@ func (i *Interpreter) backtrackInput() {
 }
 
 func (i *Interpreter) consumeInput() {
+	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
+}
+
+func (i *Interpreter) resetStack() {
+	i.Stack = []CallStackEntry{}
+	i.Stack = append(i.Stack, CallStackEntry{})
+	i.Stack[0].LocalVariables = make(map[string]ast.Expression)
 	i.Stack[0].LocalVariables["$0"] = &ast.StringLiteral{Value: ""}
 }
 
@@ -202,6 +220,18 @@ func (i *Interpreter) createLocalVar(varName string, value ast.Expression) {
 }
 
 func (i *Interpreter) doStatement(stmt ast.Statement) {
+	defer func() {
+		if r := recover(); r != nil {
+			msg := r.(string)
+			if msg == "next" {
+				i.WasNextStatementHit = true
+			} else {
+				i.WasNextStatementHit = false
+				i.WasFatalErrorHit = true
+			}
+		}
+	}()
+
 	switch stmt.(type) {
 	case *ast.ExpressionStatement:
 		i.doExpressionList(stmt.(*ast.ExpressionStatement).Expressions)
@@ -215,6 +245,8 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 		i.doAssignAndModifyStatement(stmt.(*ast.AssignAndModifyStatement))
 	case *ast.IfStatement:
 		i.doIfStatement(stmt.(*ast.IfStatement))
+	case *ast.NextStatement:
+		panic("next")
 	case *ast.WhileStatement:
 		i.doWhileStatement(stmt.(*ast.WhileStatement))
 	case *ast.DoWhileStatement:
@@ -259,8 +291,8 @@ func (i *Interpreter) doPrintStatement(stmt *ast.PrintStatement) {
 	for _, expr := range toBePrinted {
 		asStrings = append(asStrings, expr.String())
 	}
-	fmt.Print(strings.Join(asStrings, " "))
-	fmt.Print("\n")
+	io.WriteString(i.Output, strings.Join(asStrings, " "))
+	io.WriteString(i.Output, "\n")
 }
 
 func (i *Interpreter) doAssignStatement(stmt *ast.AssignStatement) {
