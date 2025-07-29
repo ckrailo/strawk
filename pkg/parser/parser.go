@@ -519,12 +519,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 func (p *Parser) parseIdentifierExpr() ast.Expression {
 	defer p.nextToken()
-	if p.curToken.Literal == "false" {
-		return &ast.Boolean{Value: false}
-	}
-	if p.curToken.Literal == "true" {
-		return &ast.Boolean{Value: true}
-	}
 	ident := &ast.Identifier{Value: p.curToken.Literal}
 	if p.peekTokenIs(token.INCREMENT) {
 		expr := &ast.PostfixExpression{Left: ident, Operator: p.peekToken.Literal}

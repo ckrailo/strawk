@@ -10,7 +10,7 @@ import (
 )
 
 type Node interface {
-	TokenLiteral() string
+	GetToken() token.Token
 	String() string
 }
 
@@ -41,11 +41,11 @@ type ActionBlock struct {
 func (ab *ActionBlock) GetStatements() []Statement { return ab.Statements }
 func (ab *ActionBlock) String() string             { return "" }
 
-func (p *Program) TokenLiteral() string {
+func (p *Program) GetToken() token.Token {
 	if len(p.Statements) > 0 {
-		return p.Statements[0].TokenLiteral()
+		return p.Statements[0].GetToken()
 	} else {
-		return ""
+		return token.Token{Type: token.ILLEGAL}
 	}
 }
 
@@ -64,8 +64,8 @@ type ExpressionStatement struct {
 	Expressions []Expression
 }
 
-func (es *ExpressionStatement) statementNode()       {}
-func (es *ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
+func (es *ExpressionStatement) statementNode()        {}
+func (es *ExpressionStatement) GetToken() token.Token { return es.Token }
 func (es *ExpressionStatement) String() string {
 	var out bytes.Buffer
 
@@ -83,7 +83,7 @@ type ActionBlockStatement struct {
 }
 
 func (as *ActionBlockStatement) statementNode()             {}
-func (as *ActionBlockStatement) TokenLiteral() string       { return as.Token.Literal }
+func (as *ActionBlockStatement) GetToken() token.Token      { return as.Token }
 func (as *ActionBlockStatement) GetStatements() []Statement { return as.Statements.Statements }
 func (as *ActionBlockStatement) String() string {
 	var out bytes.Buffer
@@ -101,7 +101,7 @@ type BeginStatement struct {
 }
 
 func (bs *BeginStatement) statementNode()             {}
-func (bs *BeginStatement) TokenLiteral() string       { return bs.Token.Literal }
+func (bs *BeginStatement) GetToken() token.Token      { return bs.Token }
 func (bs *BeginStatement) GetStatements() []Statement { return bs.Statements }
 func (bs *BeginStatement) String() string {
 	var out bytes.Buffer
@@ -121,7 +121,7 @@ type EndStatement struct {
 }
 
 func (es *EndStatement) statementNode()             {}
-func (es *EndStatement) TokenLiteral() string       { return es.Token.Literal }
+func (es *EndStatement) GetToken() token.Token      { return es.Token }
 func (es *EndStatement) GetStatements() []Statement { return es.Statements }
 func (es *EndStatement) String() string {
 	var out bytes.Buffer
@@ -139,8 +139,8 @@ type AssignStatement struct {
 	Values  []Expression
 }
 
-func (as *AssignStatement) statementNode()       {}
-func (as *AssignStatement) TokenLiteral() string { return as.Token.Literal }
+func (as *AssignStatement) statementNode()        {}
+func (as *AssignStatement) GetToken() token.Token { return as.Token }
 func (as *AssignStatement) String() string {
 	var out bytes.Buffer
 
@@ -158,8 +158,8 @@ type AssignAndModifyStatement struct {
 	Value    Expression
 }
 
-func (ams *AssignAndModifyStatement) statementNode()       {}
-func (ams *AssignAndModifyStatement) TokenLiteral() string { return ams.Token.Literal }
+func (ams *AssignAndModifyStatement) statementNode()        {}
+func (ams *AssignAndModifyStatement) GetToken() token.Token { return ams.Token }
 func (ams *AssignAndModifyStatement) String() string {
 	var out bytes.Buffer
 
@@ -173,8 +173,8 @@ type PrintStatement struct {
 	Expressions []Expression
 }
 
-func (ps *PrintStatement) statementNode()       {}
-func (ps *PrintStatement) TokenLiteral() string { return ps.Token.Literal }
+func (ps *PrintStatement) statementNode()        {}
+func (ps *PrintStatement) GetToken() token.Token { return ps.Token }
 func (ps *PrintStatement) String() string {
 	var out bytes.Buffer
 	out.WriteString("print ")
@@ -196,8 +196,8 @@ type IfStatement struct {
 	Else         *ActionBlock
 }
 
-func (is *IfStatement) statementNode()       {}
-func (is *IfStatement) TokenLiteral() string { return is.Token.Literal }
+func (is *IfStatement) statementNode()        {}
+func (is *IfStatement) GetToken() token.Token { return is.Token }
 func (is *IfStatement) String() string {
 	var out bytes.Buffer
 
@@ -212,8 +212,8 @@ type WhileStatement struct {
 	ShouldContinue bool
 }
 
-func (ws *WhileStatement) statementNode()       {}
-func (ws *WhileStatement) TokenLiteral() string { return ws.Token.Literal }
+func (ws *WhileStatement) statementNode()        {}
+func (ws *WhileStatement) GetToken() token.Token { return ws.Token }
 func (ws *WhileStatement) String() string {
 	var out bytes.Buffer
 
@@ -228,8 +228,8 @@ type DoWhileStatement struct {
 	ShouldContinue bool
 }
 
-func (ds *DoWhileStatement) statementNode()       {}
-func (ds *DoWhileStatement) TokenLiteral() string { return ds.Token.Literal }
+func (ds *DoWhileStatement) statementNode()        {}
+func (ds *DoWhileStatement) GetToken() token.Token { return ds.Token }
 func (ds *DoWhileStatement) String() string {
 	var out bytes.Buffer
 
@@ -246,8 +246,8 @@ type ForStatement struct {
 	ShouldContinue bool
 }
 
-func (fs *ForStatement) statementNode()       {}
-func (fs *ForStatement) TokenLiteral() string { return fs.Token.Literal }
+func (fs *ForStatement) statementNode()        {}
+func (fs *ForStatement) GetToken() token.Token { return fs.Token }
 func (fs *ForStatement) String() string {
 	var out bytes.Buffer
 
@@ -259,8 +259,8 @@ type ReturnStatement struct {
 	Value Expression
 }
 
-func (cs *ReturnStatement) statementNode()       {}
-func (cs *ReturnStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ReturnStatement) statementNode()        {}
+func (cs *ReturnStatement) GetToken() token.Token { return cs.Token }
 func (cs *ReturnStatement) String() string {
 	var out bytes.Buffer
 
@@ -271,8 +271,8 @@ type BreakStatement struct {
 	Token token.Token
 }
 
-func (bs *BreakStatement) statementNode()       {}
-func (bs *BreakStatement) TokenLiteral() string { return bs.Token.Literal }
+func (bs *BreakStatement) statementNode()        {}
+func (bs *BreakStatement) GetToken() token.Token { return bs.Token }
 func (bs *BreakStatement) String() string {
 	var out bytes.Buffer
 
@@ -286,8 +286,8 @@ type FunctionLiteral struct {
 	Body       *ActionBlock
 }
 
-func (fl *FunctionLiteral) statementNode()       {}
-func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
+func (fl *FunctionLiteral) statementNode()        {}
+func (fl *FunctionLiteral) GetToken() token.Token { return fl.Token }
 func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 
@@ -309,8 +309,8 @@ type ContinueStatement struct {
 	Token token.Token
 }
 
-func (cs *ContinueStatement) statementNode()       {}
-func (cs *ContinueStatement) TokenLiteral() string { return cs.Token.Literal }
+func (cs *ContinueStatement) statementNode()        {}
+func (cs *ContinueStatement) GetToken() token.Token { return cs.Token }
 func (cs *ContinueStatement) String() string {
 	var out bytes.Buffer
 
@@ -321,8 +321,8 @@ type NextStatement struct {
 	Token token.Token
 }
 
-func (ns *NextStatement) statementNode()       {}
-func (ns *NextStatement) TokenLiteral() string { return ns.Token.Literal }
+func (ns *NextStatement) statementNode()        {}
+func (ns *NextStatement) GetToken() token.Token { return ns.Token }
 func (ns *NextStatement) String() string {
 	var out bytes.Buffer
 
@@ -337,8 +337,8 @@ type CallExpression struct {
 	Arguments []Expression
 }
 
-func (ce *CallExpression) expressionNode()      {}
-func (ce *CallExpression) TokenLiteral() string { return ce.Token.Literal }
+func (ce *CallExpression) expressionNode()       {}
+func (ce *CallExpression) GetToken() token.Token { return ce.Token }
 func (ce *CallExpression) String() string {
 	var out bytes.Buffer
 
@@ -362,8 +362,8 @@ type TernaryExpression struct {
 	IfFalse   Expression
 }
 
-func (te *TernaryExpression) expressionNode()      {}
-func (te *TernaryExpression) TokenLiteral() string { return te.Token.Literal }
+func (te *TernaryExpression) expressionNode()       {}
+func (te *TernaryExpression) GetToken() token.Token { return te.Token }
 func (te *TernaryExpression) String() string {
 	var out bytes.Buffer
 
@@ -378,8 +378,8 @@ type PrefixExpression struct {
 	Right    Expression
 }
 
-func (pe *PrefixExpression) expressionNode()      {}
-func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *PrefixExpression) expressionNode()       {}
+func (pe *PrefixExpression) GetToken() token.Token { return pe.Token }
 func (pe *PrefixExpression) String() string {
 	var out bytes.Buffer
 
@@ -397,8 +397,8 @@ type PostfixExpression struct {
 	Operator string
 }
 
-func (pe *PostfixExpression) expressionNode()      {}
-func (pe *PostfixExpression) TokenLiteral() string { return pe.Token.Literal }
+func (pe *PostfixExpression) expressionNode()       {}
+func (pe *PostfixExpression) GetToken() token.Token { return pe.Token }
 func (pe *PostfixExpression) String() string {
 	var out bytes.Buffer
 
@@ -417,8 +417,8 @@ type InfixExpression struct {
 	Right    Expression
 }
 
-func (ie *InfixExpression) expressionNode()      {}
-func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
+func (ie *InfixExpression) expressionNode()       {}
+func (ie *InfixExpression) GetToken() token.Token { return ie.Token }
 func (ie *InfixExpression) String() string {
 	var out bytes.Buffer
 
@@ -436,26 +436,17 @@ type Identifier struct {
 	Value string
 }
 
-func (i *Identifier) expressionNode()      {}
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
-func (i *Identifier) String() string       { return i.Value }
-
-type Boolean struct {
-	Token token.Token
-	Value bool
-}
-
-func (b *Boolean) expressionNode()      {}
-func (b *Boolean) TokenLiteral() string { return b.Token.Literal }
-func (b *Boolean) String() string       { return b.Token.Literal }
+func (i *Identifier) expressionNode()       {}
+func (i *Identifier) GetToken() token.Token { return i.Token }
+func (i *Identifier) String() string        { return i.Value }
 
 type NumericLiteral struct {
 	Token token.Token
 	Value float64
 }
 
-func (il *NumericLiteral) expressionNode()      {}
-func (il *NumericLiteral) TokenLiteral() string { return il.Token.Literal }
+func (il *NumericLiteral) expressionNode()       {}
+func (il *NumericLiteral) GetToken() token.Token { return il.Token }
 func (il *NumericLiteral) String() string {
 	if il.Value == float64(int(il.Value)) {
 		return fmt.Sprintf("%d", int(il.Value))
@@ -468,9 +459,9 @@ type StringLiteral struct {
 	Value string
 }
 
-func (sl *StringLiteral) expressionNode()      {}
-func (sl *StringLiteral) TokenLiteral() string { return sl.Token.Literal }
-func (sl *StringLiteral) String() string       { return sl.Value }
+func (sl *StringLiteral) expressionNode()       {}
+func (sl *StringLiteral) GetToken() token.Token { return sl.Token }
+func (sl *StringLiteral) String() string        { return sl.Value }
 
 func NewLiteral(val string) Expression {
 	parsed, err := strconv.ParseFloat(val, 64)
@@ -485,17 +476,17 @@ type RegexLiteral struct {
 	Value string
 }
 
-func (rl *RegexLiteral) expressionNode()      {}
-func (rl *RegexLiteral) TokenLiteral() string { return rl.Token.Literal }
-func (rl *RegexLiteral) String() string       { return rl.Value }
+func (rl *RegexLiteral) expressionNode()       {}
+func (rl *RegexLiteral) GetToken() token.Token { return rl.Token }
+func (rl *RegexLiteral) String() string        { return rl.Value }
 
 type AssociativeArray struct {
 	Token token.Token
 	Array map[string]Expression
 }
 
-func (aa *AssociativeArray) expressionNode()      {}
-func (aa *AssociativeArray) TokenLiteral() string { return aa.Token.Literal }
+func (aa *AssociativeArray) expressionNode()       {}
+func (aa *AssociativeArray) GetToken() token.Token { return aa.Token }
 func (aa *AssociativeArray) String() string {
 	var out bytes.Buffer
 	entries := []string{}
@@ -516,8 +507,8 @@ type ArrayIndexExpression struct {
 	IndexList []Expression
 }
 
-func (aie *ArrayIndexExpression) expressionNode()      {}
-func (aie *ArrayIndexExpression) TokenLiteral() string { return aie.Token.Literal }
+func (aie *ArrayIndexExpression) expressionNode()       {}
+func (aie *ArrayIndexExpression) GetToken() token.Token { return aie.Token }
 func (aie *ArrayIndexExpression) String() string {
 	var out bytes.Buffer
 	indicies := []string{}

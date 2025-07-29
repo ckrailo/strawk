@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"regexp"
@@ -65,13 +66,20 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 
 func (i *Interpreter) Run(input string) {
 	i.Input = input
+
 	for _, block := range i.BeginBlocks {
-		i.doBlock(block)
+		for _, stmt := range block.Statements {
+			i.topLevelWrapperdoStatement(stmt)
+			if i.WasFatalErrorHit {
+				return
+			}
+		}
 	}
+
 	i.advanceInput()
 	for i.InputPostion < len(i.Input) {
 		for _, stmt := range i.Rules {
-			i.doStatement(stmt)
+			i.topLevelWrapperdoStatement(stmt)
 			if i.WasNextStatementHit {
 				i.WasNextStatementHit = false
 				i.resetStack()
@@ -83,8 +91,14 @@ func (i *Interpreter) Run(input string) {
 		}
 		i.advanceInput()
 	}
+
 	for _, block := range i.EndBlocks {
-		i.doBlock(block)
+		for _, stmt := range block.Statements {
+			i.topLevelWrapperdoStatement(stmt)
+			if i.WasFatalErrorHit {
+				return
+			}
+		}
 	}
 }
 
@@ -219,18 +233,33 @@ func (i *Interpreter) createLocalVar(varName string, value ast.Expression) {
 	i.Stack[len(i.Stack)-1].LocalVariables[varName] = value
 }
 
+func (i *Interpreter) topLevelWrapperdoStatement(stmt ast.Statement) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+	i.doStatement(stmt)
+}
+
 func (i *Interpreter) doStatement(stmt ast.Statement) {
 	defer func() {
 		if r := recover(); r != nil {
 			msg := r.(string)
-			if msg == "next" {
+			if msg == "rewinding" {
+				return
+			} else if msg == "next" {
 				i.WasNextStatementHit = true
 			} else {
 				i.WasNextStatementHit = false
 				i.WasFatalErrorHit = true
+				err_msg := fmt.Sprintf("Runtime Error on line %d: %s\n", i.curStatement.GetToken().LineNum, msg)
+				io.WriteString(i.Output, err_msg)
+				panic("rewinding")
 			}
 		}
 	}()
+
+	i.curStatement = stmt
 
 	switch stmt.(type) {
 	case *ast.ExpressionStatement:
