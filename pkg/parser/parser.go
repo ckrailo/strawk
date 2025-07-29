@@ -56,7 +56,7 @@ type (
 
 type Parser struct {
 	l      *lexer.Lexer
-	errors []string
+	Errors []string
 
 	curToken       token.Token
 	peekToken      token.Token
@@ -67,7 +67,7 @@ type Parser struct {
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{
 		l:      l,
-		errors: []string{},
+		Errors: []string{},
 	}
 
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
@@ -114,6 +114,12 @@ func New(l *lexer.Lexer) *Parser {
 	return p
 }
 
+func (p *Parser) addParseError(msg string) {
+	error_msg := fmt.Sprintf("Parse Error on line %d: %s\n\n", p.curToken.LineNum, msg)
+	p.Errors = append(p.Errors, error_msg)
+	panic(msg)
+}
+
 func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixParseFns[tokenType] = fn
 }
@@ -125,22 +131,6 @@ func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
 func (p *Parser) nextToken() {
 	p.curToken = p.peekToken
 	p.peekToken = p.l.NextToken()
-}
-
-func (p *Parser) expectPeek(t token.TokenType) bool {
-	if p.peekTokenIs(t) {
-		p.nextToken()
-		return true
-	} else {
-		p.peekError(t)
-		return false
-	}
-}
-
-func (p *Parser) peekError(t token.TokenType) {
-	msg := fmt.Sprintf("expected next token to be %s, got %s instead",
-		t, p.peekToken.Type)
-	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) curTokenIs(tokens ...token.TokenType) bool {
@@ -176,6 +166,13 @@ func (p *Parser) peekPrecedence() int {
 }
 
 func (p *Parser) ParseProgram() *ast.Program {
+	defer func() {
+		if r := recover(); r != nil {
+			for !p.curTokenIs(token.NEWLINE, token.SEMICOLON, token.EOF) {
+				p.nextToken()
+			}
+		}
+	}()
 	program := &ast.Program{}
 	program.Statements = []ast.Statement{}
 
@@ -294,7 +291,7 @@ func (p *Parser) parseAssignStatement(targets []ast.Expression) *ast.AssignState
 		case *ast.ArrayIndexExpression:
 			stmt.Targets = append(stmt.Targets, expr)
 		default:
-			panic("found non-identifier expression on lhs of assign statement")
+			p.addParseError("found non-identifier expression on lhs of assign statement")
 		}
 	}
 
@@ -316,7 +313,7 @@ func (p *Parser) parseAssignAndModifyStatement(targets []ast.Expression) *ast.As
 	case *ast.Identifier:
 	case *ast.ArrayIndexExpression:
 	default:
-		panic("found non-identifier expression on lhs of assign statement")
+		p.addParseError("found non-identifier expression on lhs of assign statement")
 	}
 
 	p.nextToken()
@@ -327,7 +324,7 @@ func (p *Parser) parseAssignAndModifyStatement(targets []ast.Expression) *ast.As
 func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.ActionBlockStatement {
 
 	if len(conditions) != 1 {
-		panic("Action block should have exactly 1 condition")
+		p.addParseError("Action block should have exactly 1 condition")
 	}
 
 	stmt := &ast.ActionBlockStatement{Conditon: conditions[0]}
@@ -345,7 +342,7 @@ func (p *Parser) parseActionBlockStatement(conditions []ast.Expression) *ast.Act
 func (p *Parser) parseBlock() *ast.ActionBlock {
 	block := &ast.ActionBlock{}
 	if !p.curTokenIs(token.LBRACE) {
-		panic("Expected {")
+		p.addParseError("Expected {")
 	}
 
 	p.nextToken()
@@ -363,13 +360,13 @@ func (p *Parser) parseBlock() *ast.ActionBlock {
 
 func (p *Parser) parseIfStatement() *ast.IfStatement {
 	if !p.curTokenIs(token.IF) {
-		panic("Expected if")
+		p.addParseError("Expected if")
 	}
 	p.nextToken()
 	condition := p.parseExpression(LOWEST)
 
 	if !p.curTokenIs(token.LBRACE) {
-		panic("Expected {")
+		p.addParseError("Expected {")
 	}
 	consequence := p.parseBlock()
 	stmt := &ast.IfStatement{}
@@ -393,7 +390,7 @@ func (p *Parser) parseIfStatement() *ast.IfStatement {
 
 func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	if !p.curTokenIs(token.WHILE) {
-		panic("Expected while")
+		p.addParseError("Expected while")
 	}
 	p.nextToken()
 	condition := p.parseExpression(LOWEST)
@@ -403,12 +400,12 @@ func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 
 func (p *Parser) parseDoWhileStatement() *ast.DoWhileStatement {
 	if !p.curTokenIs(token.DO) {
-		panic("Expected do")
+		p.addParseError("Expected do")
 	}
 	p.nextToken()
 	loop := p.parseBlock()
 	if !p.curTokenIs(token.WHILE) {
-		panic("Expected while")
+		p.addParseError("Expected while")
 	}
 	p.nextToken()
 	condition := p.parseExpression(LOWEST)
@@ -417,26 +414,26 @@ func (p *Parser) parseDoWhileStatement() *ast.DoWhileStatement {
 
 func (p *Parser) parseForStatement() *ast.ForStatement {
 	if !p.curTokenIs(token.FOR) {
-		panic("Expected do")
+		p.addParseError("Expected do")
 	}
 	p.nextToken()
 	if !p.curTokenIs(token.LPAREN) {
-		panic("Expected (")
+		p.addParseError("Expected (")
 	}
 	p.nextToken()
 	init := p.parseStatement()
 	if !p.curTokenIs(token.SEMICOLON) {
-		panic("Expected ;")
+		p.addParseError("Expected ;")
 	}
 	p.nextToken()
 	condition := p.parseExpression(LOWEST)
 	if !p.curTokenIs(token.SEMICOLON) {
-		panic("Expected ;")
+		p.addParseError("Expected ;")
 	}
 	p.nextToken()
 	action := p.parseStatement()
 	if !p.curTokenIs(token.RPAREN) {
-		panic("Expected )")
+		p.addParseError("Expected )")
 	}
 	p.nextToken()
 	block := p.parseBlock()
@@ -497,7 +494,7 @@ func (p *Parser) parseExpressionList(end ...token.TokenType) []ast.Expression {
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.curToken.Type]
 	if prefix == nil {
-		p.noPrefixParseFnError(p.curToken.Type)
+		p.addParseError(fmt.Sprintf("no prefix parse function for %s found", p.curToken.Type))
 		return nil
 	}
 	leftExp := prefix()
@@ -518,11 +515,6 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return p.parseConcatenateExpression(leftExp)
 	}
 	return leftExp
-}
-
-func (p *Parser) noPrefixParseFnError(t token.TokenType) {
-	msg := fmt.Sprintf("no prefix parse function for %s found", t)
-	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) parseIdentifierExpr() ast.Expression {
@@ -555,7 +547,7 @@ func (p *Parser) parseStringLiteralExpr() ast.Expression {
 func (p *Parser) parseNumericLiteralExpr() ast.Expression {
 	val, err := strconv.ParseFloat(p.curToken.Literal, 64)
 	if err != nil {
-		panic("unparsable numeric type")
+		p.addParseError("unparsable numeric type")
 	}
 	lit := &ast.NumericLiteral{Value: val}
 	p.nextToken()
@@ -637,7 +629,7 @@ func (p *Parser) parseGroupedExpression() ast.Expression {
 		expr = exprs[0]
 	}
 	if !p.curTokenIs(token.RPAREN) {
-		panic("expected (")
+		p.addParseError("expected (")
 		// p.addError(fmt.Sprintf("expected ), got %s %s", p.curToken.Type, p.curToken.Literal))
 	}
 	p.nextToken()
@@ -649,7 +641,7 @@ func (p *Parser) parseTernaryExpression(expr ast.Expression) ast.Expression {
 	p.nextToken()
 	ternaryExpr.IfTrue = p.parseExpression(LOWEST)
 	if !p.curTokenIs(token.COLON) {
-		panic("expected :")
+		p.addParseError("expected :")
 		// p.addError(fmt.Sprintf("expected ), got %s %s", p.curToken.Type, p.curToken.Literal))
 	}
 	p.nextToken()
@@ -663,7 +655,7 @@ func (p *Parser) parseArrayIndexExpression(expr ast.Expression) ast.Expression {
 	case *ast.Identifier:
 		id = expr.String()
 	default:
-		panic("Attempt to address array with non-identifier")
+		p.addParseError("Attempt to address array with non-identifier")
 	}
 	p.nextToken()
 	indicies := p.parseExpressionList()
@@ -679,7 +671,7 @@ func (p *Parser) parseArrayMembershipExpression(left ast.Expression) ast.Express
 	}
 	p.nextToken()
 	if !p.curTokenIs(token.IDENT) {
-		panic("parse error in key in array expression: expected identifier on the right.")
+		p.addParseError("key in array expression: expected identifier on the right.")
 	}
 	right := p.parseExpression(LOWEST)
 	expr.Right = right
@@ -689,16 +681,16 @@ func (p *Parser) parseArrayMembershipExpression(left ast.Expression) ast.Express
 func (p *Parser) parseFunctionLiteral() *ast.FunctionLiteral {
 	function := &ast.FunctionLiteral{}
 	if !p.curTokenIs(token.FUNCTION) {
-		panic("parse error in function: expected function keyword")
+		p.addParseError("expected function keyword")
 	}
 	p.nextToken()
 	if !p.curTokenIs(token.IDENT) {
-		panic("parse error in function: expected identifier for function name.")
+		p.addParseError("expected identifier for function name.")
 	}
 	function.Name = ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 	p.nextToken()
 	if !p.curTokenIs(token.LPAREN) {
-		panic("parse error in function: expected (")
+		p.addParseError("expected (")
 	}
 	for !p.curTokenIs(token.RPAREN) {
 		p.nextToken()
@@ -707,12 +699,12 @@ func (p *Parser) parseFunctionLiteral() *ast.FunctionLiteral {
 			break
 		}
 		if !p.curTokenIs(token.IDENT) {
-			panic("Expected identifier when parsing function params")
+			p.addParseError("Expected identifier when parsing function params")
 		}
 		function.Parameters = append(function.Parameters, ast.Identifier{Token: p.curToken, Value: p.curToken.Literal})
 		p.nextToken()
 		if !p.curTokenIs(token.COMMA) && !p.curTokenIs(token.RPAREN) {
-			panic("Expected , or ) when parsing function params")
+			p.addParseError("Expected , or ) when parsing function params")
 		}
 	}
 	p.nextToken()

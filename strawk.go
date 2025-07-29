@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/ahalbert/strawk/pkg/flags"
@@ -39,6 +40,12 @@ func main() {
 	l := lexer.New(string(program))
 	p := parser.New(l)
 	parsedprogram := p.ParseProgram()
+	if len(p.Errors) > 0 {
+		for _, err := range p.Errors {
+			fmt.Print(err)
+		}
+		os.Exit(1)
+	}
 	i := interpreter.NewInterpreter(parsedprogram, os.Stdout)
 	i.Run(string(input))
 }
