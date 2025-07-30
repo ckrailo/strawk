@@ -1,0 +1,49 @@
+@top Program { Statement+ }
+
+Statement[@isGroup=Statement] { 
+  Expression? Block |
+}
+
+Block { LeftBrace Statement+ RightBrace}
+
+Action { 
+  IfStatement
+  kw<"start"> | 
+  kw<"capture"> | 
+  kw<"stop"> | 
+  kw<"print"> identifier? |
+  kw<"println"> identifier? 
+  kw<"clear"> identifier? |
+  kw<"do"> Regex |
+  kw<"dountil"> Regex |
+  kw<"else"> |
+  Regex |
+  String
+}
+
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
+@skip { space | LineComment }
+
+String[isolate] {
+    '"' (stringContentDouble )* ('"') |
+    "'" (stringContentSingle )* ("'")
+  }
+
+
+@tokens {
+  stringContentSingle { ![\\\n']+ }
+  stringContentDouble { ![\\\n"]+ }
+  stateidentifier[@export] { $[0-9a-zA-Z_]+ } 
+  Regex[isolate] { "/" (![\n]* "/" | ![\n]* "/" ![\n]* "/")+}
+  identifier[@export] { $[0-9a-zA-Z_$@]+ } 
+  Colon { ":" }
+  LeftBrace { "{" }
+  RightBrace { "}" }
+  Name { $?@asciiLetter+ }
+  Number { @digit+ }
+  space { @whitespace+ }
+  LineComment { "#" ![\n]* }
+  @precedence { stringContentSingle, stringContentDouble, LineComment, space, Regex, identifier}
+}
+
