@@ -282,6 +282,8 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 		i.doDoWhileStatement(stmt.(*ast.DoWhileStatement))
 	case *ast.ForStatement:
 		i.doForStatement(stmt.(*ast.ForStatement))
+	case *ast.DeleteStatement:
+		i.doDeleteStatement(stmt.(*ast.DeleteStatement))
 	default:
 		panic("Unexpected statement type")
 	}
@@ -865,4 +867,19 @@ func (i *Interpreter) doBooleanOr(left ast.Expression, right ast.Expression) ast
 	r := ExpressionToBool(right)
 	result := l || r
 	return boolToExpression(result)
+}
+
+func (i *Interpreter) doDeleteStatement(stmt *ast.DeleteStatement) {
+	val, ok := i.Stack[len(i.Stack)-1].LocalVariables[stmt.ToDelete.ArrayName]
+	if !ok {
+		val, ok = i.GlobalVariables[stmt.ToDelete.ArrayName]
+	}
+	if !ok {
+		panic("Attempt to delete on non-existent variable")
+	}
+	array, ok := val.(*ast.AssociativeArray)
+	if !ok {
+		panic("Attempt to delete on scalar variable")
+	}
+	delete(array.Array, i.transformArrayLookupExpression(stmt.ToDelete.IndexList))
 }

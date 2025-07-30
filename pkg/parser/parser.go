@@ -210,6 +210,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseIfStatement()
 	case token.PRINT:
 		return p.parsePrintStatement()
+	case token.DELETE:
+		return p.parseDeleteStatement()
 	case token.NEWLINE:
 		p.nextToken()
 		return nil
@@ -704,4 +706,15 @@ func (p *Parser) parseFunctionLiteral() *ast.FunctionLiteral {
 	p.nextToken()
 	function.Body = p.parseBlock()
 	return function
+}
+
+func (p *Parser) parseDeleteStatement() *ast.DeleteStatement {
+	p.nextToken()
+	expr := p.parseExpression(LOWEST)
+	switch expr.(type) {
+	case *ast.ArrayIndexExpression:
+	default:
+		p.addParseError("Expected Array Index Expression with delete statement")
+	}
+	return &ast.DeleteStatement{ToDelete: expr.(*ast.ArrayIndexExpression)}
 }

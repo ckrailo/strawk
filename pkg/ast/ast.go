@@ -520,3 +520,15 @@ func (aie *ArrayIndexExpression) String() string {
 
 	return out.String()
 }
+
+type DeleteStatement struct {
+	Token    token.Token
+	ToDelete *ArrayIndexExpression
+}
+
+func (ds *DeleteStatement) statementNode()        {}
+func (ds *DeleteStatement) GetToken() token.Token { return ds.Token }
+func (ds *DeleteStatement) String() string {
+	var out bytes.Buffer
+	return out.String()
+}

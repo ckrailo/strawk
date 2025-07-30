@@ -4,4 +4,6 @@ BEGIN {
   print a[2]
   print 1 in a
   print 2 in a
+  delete a[1]
+  print 1 in a
 }
