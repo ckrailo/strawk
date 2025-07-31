@@ -1,94 +1,159 @@
 <!doctype html>
-<head>
-<title>Strawk Playground</title>
+<html lang="en" data-bs-theme="auto">
+  <head>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset=utf8>
-    <!-- Bootstrap -->
-<script
-  src="https://code.jquery.com/jquery-3.7.1.min.js"
-  integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
-  crossorigin="anonymous"></script>
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" >
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" ></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js" integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.css" rel="stylesheet">
-    <script src="/js/sakdsdjkkjdlsk.js" ></script>
-    <style>
-      @media (min-width: 768px) {
-        .collapse.dont-collapse-sm {
-          display: block;
-          height: auto !important;
-          visibility: visible;
-        }
-      }
-      pre {
-      overflow: auto;
-          word-wrap: normal;
-          white-space: pre;
-          }
-      blockquote {
-        border-left: 10px solid #ccc;
-        margin: 1.5em 10px;
-        padding: 0.5em 10px;
-        quotes: "\201C""\201D""\2018""\2019";
-      }
-      blockquote:before {
-        color: #ccc;
-        font-size: 4em;
-        line-height: 0.1em;
-        margin-right: 0.25em;
-        vertical-align: -0.4em;
-      }
-      blockquote p {
-        display: inline;
-      }
-      .cm-editor { border: 2px solid; height: 100%; max-height: none;}
-      .cm-scroller {overflow: auto;}
-#surface {
-    display: flex;
-    align-content: stretch;
-    align-items: stretch;
-    position: relative;
-  }
-    </style>
-<!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-W5ZCGETPE0"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-W5ZCGETPE0');
-</script>
-</head>
-<body>
-  <h1>Strawk Playground</h1>
-  <div class="container-fluid">
-    <div class="btn-group">
-      <button class="btn btn-secondary" id="runbutton" onclick="runProgram();">Run Program</button>
-      <div class="dropdown show">
-        <button class="btn btn-secondary dropdown-toggle" style="margin-left: 10px;" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-          Examples:
-          </button>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item"  onclick="changeExample(introduction, introductioninput);">Introduction</a></li>
-        </ul>
+    <title>Strawk Playground</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.css" rel="stylesheet">
+    
+    <script
+      src="https://code.jquery.com/jquery-3.7.1.min.js"
+      integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+      crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <script src="/js/sakdsdjkkjdlsk.js"></script>
+
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-W5ZCGETPE0"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-W5ZCGETPE0');
+    </script>
+  </head>
+
+  <body>
+    <nav class="navbar navbar-expand-sm bg-body-tertiary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#"><h1>Strawk Playground</h1></a>
+        <button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#strawkNavbar" aria-controls="strawkNavbar" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="strawkNavbar">
+          <ul class="navbar-nav ms-sm-auto">
+            <li class="nav-item px-3">
+              <a class="d-inline-flex btn btn-secondary align-items-center" id="githublink" href="https://github.com/ahalbert/strawk">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+                  <!-- Source: https://icons.getbootstrap.com/icons/github/ -->
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8"/>
+                </svg>
+                &nbsp;Github
+              </a>
+            </li>
+            <li class="nav-item">
+              <button class="d-inline-flex btn btn-outline-light align-items-center" type="button" data-bs-theme-value="light">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-sun" viewBox="0 0 16 16">
+                  <!-- Source: https://icons.getbootstrap.com/icons/sun/ -->
+                  <path d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6m0 1a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 0a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 0m0 13a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-1 0v-2A.5.5 0 0 1 8 13m8-5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2a.5.5 0 0 1 .5.5M3 8a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h2A.5.5 0 0 1 3 8m10.657-5.657a.5.5 0 0 1 0 .707l-1.414 1.415a.5.5 0 1 1-.707-.708l1.414-1.414a.5.5 0 0 1 .707 0m-9.193 9.193a.5.5 0 0 1 0 .707L3.05 13.657a.5.5 0 0 1-.707-.707l1.414-1.414a.5.5 0 0 1 .707 0m9.193 2.121a.5.5 0 0 1-.707 0l-1.414-1.414a.5.5 0 0 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .707M4.464 4.465a.5.5 0 0 1-.707 0L2.343 3.05a.5.5 0 1 1 .707-.707l1.414 1.414a.5.5 0 0 1 0 .708"/>
+                </svg>
+                &nbsp;Light
+              </button>
+              <button class="d-inline-flex btn btn-outline-dark align-items-center d-none" type="button" data-bs-theme-value="dark">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-moon" viewBox="0 0 16 16">
+                  <!-- Source: https://icons.getbootstrap.com/icons/moon/ -->
+                  <path d="M6 .278a.77.77 0 0 1 .08.858 7.2 7.2 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.277q.792-.001 1.533-.16a.79.79 0 0 1 .81.316.73.73 0 0 1-.031.893A8.35 8.35 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.75.75 0 0 1 6 .278M4.858 1.311A7.27 7.27 0 0 0 1.025 7.71c0 4.02 3.279 7.276 7.319 7.276a7.32 7.32 0 0 0 5.205-2.162q-.506.063-1.029.063c-4.61 0-8.343-3.714-8.343-8.29 0-1.167.242-2.278.681-3.286"/>
+                </svg>
+                &nbsp;Dark
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
-      <a class="btn btn-secondary" style="margin-left: 10px;" id="githublink" href="https://github.com/ahalbert/strawk">Github</a>
+    </nav>
+
+    <div class="container-fluid">
+      <div class="row py-3">
+        <div class="d-flex gap-2 justify-content-start align-items-center">
+          <button type="button" class="btn btn-primary" id="runbutton" onclick="runProgram();">Run Program</button>
+          <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+              Examples
+            </button>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" onclick="changeExample(introduction, introductioninput);">Introduction</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="row py-1" id="surface">
+        <div class="col-12 col-md-6" id="strawkeditor">
+          <h3 class="py-1">Program</h3>
+        </div>
+        <div class="col-12 col-md-6" id="inputeditor">
+          <h3 class="py-1">Input</h3>
+        </div>
+      </div>
+
+      <div class="row p-1">
+        <div class="col-md-6" id="outputeditor">
+          <h3 class="py-1">Output</h3>
+        </div>
+      </div>
     </div>
-    <div class="row" id="surface">
-      <div class="col-12 col-md-5" id="strawkeditor" style="margin-bottom: 25px; display: block;"> <h3>Program</h3></div>
-      <div class="col-12 col-md-5" id="inputeditor" style="display: block;"> <h3>Input</h3></div>
-    </div>
-  </div>
-  <p>
-  <div class="container-fluid">
-    <div class="row" >
-      <div class="col-md-5" id="outputeditor" style="margin-top: 2em; margin-bottom: 23px;"> <h3>Output</h3></div>
-    </div>
-  </div>
-  </p>
-</body>
-<script src="editor.bundle.js"></script>
-<script src="strawk.js"></script>
-</script>
+
+    <script src="editor.bundle.js"></script>
+    <script src="strawk.js"></script>
+
+    <script>
+      (() => {
+        'use strict'
+
+        const getStoredTheme = () => localStorage.getItem('theme')
+        const setStoredTheme = theme => localStorage.setItem('theme', theme)
+
+        const getPreferredTheme = () => {
+          const storedTheme = getStoredTheme()
+          if (storedTheme) {
+            return storedTheme
+          }
+
+          return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+
+        const setTheme = theme => {
+          let themeValueToSet
+          if (theme === 'auto') {
+            themeValueToSet = (window.matchMedia('(prefers-color-scheme: dark)').matches? 'dark' : 'light')
+          } else {
+            themeValueToSet = theme
+          }
+
+          if (themeValueToSet === 'light') {
+            document.querySelector("[data-bs-theme-value=light]").classList.add("d-none")
+            document.querySelector("[data-bs-theme-value=dark]").classList.remove("d-none")
+          } else {
+            document.querySelector("[data-bs-theme-value=dark]").classList.add("d-none")
+            document.querySelector("[data-bs-theme-value=light]").classList.remove("d-none")
+          }
+
+          setStoredTheme(themeValueToSet)
+          document.documentElement.setAttribute('data-bs-theme', themeValueToSet)
+        }
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          const storedTheme = getStoredTheme()
+          if (storedTheme !== 'light' && storedTheme !== 'dark') {
+            setTheme(getPreferredTheme())
+          }
+        })
+
+        window.addEventListener('DOMContentLoaded', () => {
+          setTheme(getPreferredTheme())
+
+          document.querySelectorAll('[data-bs-theme-value]')
+            .forEach(themeButton => {
+              themeButton.addEventListener('click', () => {
+                setTheme(themeButton.getAttribute('data-bs-theme-value'))
+              })
+            })
+        })
+      })()
+    </script>
+  </body>
+</html>
