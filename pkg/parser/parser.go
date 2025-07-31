@@ -414,7 +414,8 @@ func (p *Parser) parseDoWhileStatement() *ast.DoWhileStatement {
 	return &ast.DoWhileStatement{Condition: condition, Block: loop}
 }
 
-func (p *Parser) parseForStatement() *ast.ForStatement {
+func (p *Parser) parseForStatement() ast.Statement {
+	t := p.curToken
 	if !p.curTokenIs(token.FOR) {
 		p.addParseError("Expected do")
 	}
@@ -423,6 +424,21 @@ func (p *Parser) parseForStatement() *ast.ForStatement {
 		p.addParseError("Expected (")
 	}
 	p.nextToken()
+
+	if p.curTokenIs(token.IDENT) && p.peekTokenIs(token.IN) {
+		keyVariable := p.parseIdentifierExpr()
+		p.nextToken()
+		arrayName := p.parseIdentifierExpr()
+		if !p.curTokenIs(token.RPAREN) {
+			p.addParseError("Expected )")
+		}
+		p.nextToken()
+		return &ast.ForEachStatement{Token: t,
+			VarName: keyVariable.(*ast.Identifier),
+			Array:   arrayName.(*ast.Identifier),
+			Block:   p.parseBlock()}
+	}
+
 	init := p.parseStatement()
 	if !p.curTokenIs(token.SEMICOLON) {
 		p.addParseError("Expected ;")

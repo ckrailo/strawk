@@ -254,6 +254,23 @@ func (fs *ForStatement) String() string {
 	return out.String()
 }
 
+type ForEachStatement struct {
+	Token          token.Token
+	VarName        *Identifier
+	Array          *Identifier
+	Block          *ActionBlock
+	ShouldBreak    bool
+	ShouldContinue bool
+}
+
+func (fs *ForEachStatement) statementNode()        {}
+func (fs *ForEachStatement) GetToken() token.Token { return fs.Token }
+func (fs *ForEachStatement) String() string {
+	var out bytes.Buffer
+
+	return out.String()
+}
+
 type ReturnStatement struct {
 	Token token.Token
 	Value Expression

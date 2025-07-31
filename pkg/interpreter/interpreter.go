@@ -282,6 +282,8 @@ func (i *Interpreter) doStatement(stmt ast.Statement) {
 		i.doDoWhileStatement(stmt.(*ast.DoWhileStatement))
 	case *ast.ForStatement:
 		i.doForStatement(stmt.(*ast.ForStatement))
+	case *ast.ForEachStatement:
+		i.doForEachStatement(stmt.(*ast.ForEachStatement))
 	case *ast.DeleteStatement:
 		i.doDeleteStatement(stmt.(*ast.DeleteStatement))
 	default:
@@ -439,6 +441,38 @@ func (i *Interpreter) doForStatement(stmt *ast.ForStatement) {
 	}
 }
 
+func (i *Interpreter) doForEachStatement(stmt *ast.ForEachStatement) {
+	val, ok := i.Stack[len(i.Stack)-1].LocalVariables[stmt.Array.Value]
+	if !ok {
+		val, ok = i.GlobalVariables[stmt.Array.Value]
+	}
+	if !ok {
+		panic("Attempt to foreach on non-existent array")
+	}
+	array, ok := val.(*ast.AssociativeArray)
+	if !ok {
+		panic("Attempt to foreach on scalar variable")
+	}
+	for k := range array.Array {
+		i.setVar(stmt.VarName, &ast.StringLiteral{Value: k})
+		for _, st := range stmt.Block.Statements {
+			switch st.(type) {
+			case *ast.ContinueStatement:
+				stmt.ShouldContinue = true
+			case *ast.BreakStatement:
+				stmt.ShouldBreak = true
+			default:
+				i.doStatement(st)
+			}
+			if stmt.ShouldBreak {
+				break
+			}
+			if stmt.ShouldContinue {
+				break
+			}
+		}
+	}
+}
 func (i *Interpreter) doExpressionList(expressions []ast.Expression) []ast.Expression {
 	var results []ast.Expression
 	for _, expr := range expressions {
