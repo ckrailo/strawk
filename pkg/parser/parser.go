@@ -215,6 +215,9 @@ func (p *Parser) parseStatement() ast.Statement {
 	case token.NEWLINE:
 		p.nextToken()
 		return nil
+	case token.SEMICOLON:
+		p.nextToken()
+		return nil
 	default:
 		return p.parseExpressionPrefixedStatements()
 	}

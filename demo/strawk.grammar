@@ -1,25 +1,52 @@
-@top Program { Statement+ }
+@precedence{inf @left }
+@top Program { Statement+  }
 
-Statement[@isGroup=Statement] { 
+Statement[@isGroup=statement] { 
+  Regex Block |
   Expression? Block |
+  BeginStatement |
+  EndStatement |
+  FunctionStatement |
+  WhileStatement |
+  DoWhileStatement |
+  ForStatement |
+  BreakStatement |
+  ContinueStatement |
+  ReturnStatement |
+  IfStatement |
+  PrintStatement |
+  DeleteStatement |
+  AssignStatement 
 }
 
 Block { LeftBrace Statement+ RightBrace}
 
-Action { 
-  IfStatement
-  kw<"start"> | 
-  kw<"capture"> | 
-  kw<"stop"> | 
-  kw<"print"> identifier? |
-  kw<"println"> identifier? 
-  kw<"clear"> identifier? |
-  kw<"do"> Regex |
-  kw<"dountil"> Regex |
-  kw<"else"> |
-  Regex |
-  String
+BeginStatement { kw<"BEGIN"> Block }
+EndStatement { kw<"END"> Block }
+
+FunctionStatement { kw<"function"> identifier '(' identifier? (',' identifier)* ')' Block }
+
+WhileStatement { kw<"while"> Expression Block}
+DoWhileStatement { kw<"do"> Block kw<"while"> Expression }
+ForStatement { kw<"for"> '(' ( identifier kw<"in"> identifier | Statement ';'  Expression ';' Statement ';') ')' Block }
+BreakStatement { kw<"break"> }
+ContinueStatement { kw<"continue"> }
+ReturnStatement { kw<"return"> Expression }
+IfStatement { kw<"if"> Expression Block (kw<"else"> kw<"if"> Expression Block)* (kw<"else"> Block)? }
+PrintStatement { kw<"print"> Expression (',' Expression)* }
+DeleteStatement { kw<"delete"> Expression }
+AssignStatement { 
+  identifier ( ',' identifier)* '=' Expression (',' Expression)* |
+  identifier ModifyAndAssignOperators identifier
 }
+
+Expression { 
+  Prefix | Expression !inf InfixOperator Expression | StdLibCall '(' Expression? (',' Expression)* ')'
+}
+
+StdLibCall {kw<"length">}
+
+Prefix { !inf PrefixOp? identifier !inf PrefixOp? | String | Number | '-' | '!'  }
 
 kw<term> { @specialize[@name={term}]<identifier, term> }
 
@@ -35,15 +62,18 @@ String[isolate] {
   stringContentSingle { ![\\\n']+ }
   stringContentDouble { ![\\\n"]+ }
   stateidentifier[@export] { $[0-9a-zA-Z_]+ } 
-  Regex[isolate] { "/" (![\n]* "/" | ![\n]* "/" ![\n]* "/")+}
+  Regex { "/" (![\n]* "/" | ![\n]* "/" ![\n]* "/")+}
   identifier[@export] { $[0-9a-zA-Z_$@]+ } 
   Colon { ":" }
+  InfixOperator { '+'| '*'| '%'| '^'| '&&'| '||'}
+  PrefixOp { '++' | '--' }
+  ModifyAndAssignOperators { '+='| '-='| '*='| '/='| '%='| '^='}
   LeftBrace { "{" }
   RightBrace { "}" }
-  Name { $?@asciiLetter+ }
+  Name { '$'?@asciiLetter+ }
   Number { @digit+ }
   space { @whitespace+ }
   LineComment { "#" ![\n]* }
-  @precedence { stringContentSingle, stringContentDouble, LineComment, space, Regex, identifier}
+  @precedence { Regex, stringContentSingle, stringContentDouble, LineComment, space,  Number, identifier}
 }
 

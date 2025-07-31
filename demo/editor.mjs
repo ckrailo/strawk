@@ -1,6 +1,6 @@
 import {EditorView, basicSetup} from "codemirror"
 import { EditorState } from '@codemirror/state';
-import {parser} from "./ted_parser.js"
+import {parser} from "./strawk.parser.js"
 import {foldNodeProp, foldInside, indentNodeProp} from "@codemirror/language"
 import {styleTags, tags as t} from "@lezer/highlight"
 import {LRLanguage} from "@codemirror/language"
@@ -10,7 +10,7 @@ import {LanguageSupport} from "@codemirror/language"
 export const parserWithMetadata = parser.configure({
   props: [
     styleTags({
-      "do while continue print next if else" : t.keyword,
+      "BEGIN END do while continue print next if else break length" : t.keyword,
       identifier: t.tagName,
       stateidentifier: t.variableName,
       String: t.string,
