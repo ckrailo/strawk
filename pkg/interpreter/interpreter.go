@@ -649,9 +649,12 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 			i.consumeInput()
 			matches = prevMatches
 		}
+		i.mostRecentRegexCaptureGroups["$MATCHES"] = &ast.AssociativeArray{Array: make(map[string]ast.Expression)}
+		matchesArray, _ := i.mostRecentRegexCaptureGroups["$MATCHES"].(*ast.AssociativeArray)
 		for idx, match := range matches {
 			stridx := "$" + strconv.Itoa(idx)
 			i.mostRecentRegexCaptureGroups[stridx] = ast.NewLiteral(match)
+			matchesArray.Array[stridx] = ast.NewLiteral(match)
 		}
 		return boolToExpression(true)
 	}
