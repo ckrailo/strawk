@@ -6,11 +6,11 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/ahalbert/strawk/pkg/ast"
-	"github.com/ahalbert/strawk/pkg/stdlib"
 	"github.com/ahalbert/strawk/pkg/token"
 )
 
@@ -27,7 +27,7 @@ type Interpreter struct {
 	InputPostion                 int
 	Stack                        []CallStackEntry
 	GlobalVariables              map[string]ast.Expression
-	StdLibFunctions              map[string]func([]ast.Expression) ast.Expression
+	StdLibFunctions              map[string]func(*Interpreter, []ast.Expression) ast.Expression
 	UserDefinedFunctions         map[string]*ast.FunctionLiteral
 	mostRecentRegexCaptureGroups map[string]ast.Expression
 }
@@ -42,7 +42,7 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 		Program:              program,
 		Output:               out,
 		GlobalVariables:      make(map[string]ast.Expression),
-		StdLibFunctions:      make(map[string]func([]ast.Expression) ast.Expression),
+		StdLibFunctions:      make(map[string]func(*Interpreter, []ast.Expression) ast.Expression),
 		UserDefinedFunctions: make(map[string]*ast.FunctionLiteral),
 	}
 	i.resetStack()
@@ -60,7 +60,9 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 		}
 	}
 
-	i.StdLibFunctions["length"] = stdlib.Length
+	i.StdLibFunctions["length"] = Length
+	i.StdLibFunctions["sub"] = Sub
+	i.StdLibFunctions["gsub"] = Gsub
 	return i
 }
 
@@ -103,11 +105,11 @@ func (i *Interpreter) Run(input string) {
 }
 
 func (i *Interpreter) advanceInput() {
-	i.InputPostion += 1
 	if i.InputPostion >= len(i.Input) {
 		return
 	}
 	i.Stack[0].LocalVariables["$0"] = i.doConcatenate(i.Stack[0].LocalVariables["$0"], &ast.StringLiteral{Value: string(i.Input[i.InputPostion])})
+	i.InputPostion += 1
 }
 
 func (i *Interpreter) backtrackInput() {
@@ -453,7 +455,12 @@ func (i *Interpreter) doForEachStatement(stmt *ast.ForEachStatement) {
 	if !ok {
 		panic("Attempt to foreach on scalar variable")
 	}
+	keys := []string{}
 	for k := range array.Array {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
 		i.setVar(stmt.VarName, &ast.StringLiteral{Value: k})
 		for _, st := range stmt.Block.Statements {
 			switch st.(type) {
@@ -641,7 +648,7 @@ func (i *Interpreter) doRegexMatch(left ast.Expression, right ast.Expression, is
 				i.advanceInput()
 				prevMatches = newMatches
 				prevMatch = newMatch
-				newMatches := re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value)
+				newMatches = re.FindStringSubmatch(i.Stack[0].LocalVariables["$0"].(*ast.StringLiteral).Value)
 				newMatch = &newMatches[0]
 			}
 
@@ -665,7 +672,7 @@ func (i *Interpreter) doFunctionCall(call *ast.CallExpression) ast.Expression {
 	evaluatedArgs := i.doExpressionList(call.Arguments)
 	function, ok := i.StdLibFunctions[call.Function.String()]
 	if ok {
-		return function(evaluatedArgs)
+		return function(i, evaluatedArgs)
 	}
 	udf, ok := i.UserDefinedFunctions[call.Function.String()]
 	if !ok {
