@@ -63,6 +63,7 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 	i.StdLibFunctions["length"] = Length
 	i.StdLibFunctions["sub"] = Sub
 	i.StdLibFunctions["gsub"] = Gsub
+	i.StdLibFunctions["split"] = Split
 	return i
 }
 

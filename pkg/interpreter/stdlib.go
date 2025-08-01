@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/ahalbert/strawk/pkg/ast"
@@ -110,4 +111,30 @@ func Gsub(i *Interpreter, args []ast.Expression) ast.Expression {
 
 	replaced := re.ReplaceAllString(in.String(), args[1].String())
 	return &ast.StringLiteral{Value: replaced}
+}
+
+func Split(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) != 2 {
+		panic("Incorrect arguments to function split")
+	}
+
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function sub is not a regex")
+	}
+
+	switch args[1].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("second argument to function sub is not a scalar")
+	}
+	splits := strings.Split(args[0].String(), args[1].String())
+	ret := make(map[string]ast.Expression)
+	for idx, split := range splits {
+		ret[strconv.Itoa(idx+1)] = &ast.StringLiteral{Value: split}
+	}
+	return &ast.AssociativeArray{Array: ret}
 }

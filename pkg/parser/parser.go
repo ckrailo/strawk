@@ -278,6 +278,7 @@ func (p *Parser) parseEndStatement() *ast.EndStatement {
 			block.Statements = append(block.Statements, stmt)
 		}
 	}
+	p.nextToken()
 
 	return block
 }
@@ -609,12 +610,21 @@ func (p *Parser) parseRegexExpression() ast.Expression {
 	}
 
 	p.l.ExpectRegex = true
-	p.l.BacktrackToChar('/')
+	var doubleBacktrack bool
+	if p.curTokenIs(token.SLASH) && p.peekTokenIs(token.SLASH) {
+		p.l.BacktrackToChar('/')
+		p.l.BacktrackToChar('/')
+		doubleBacktrack = true
+	} else {
+		p.l.BacktrackToChar('/')
+	}
 	p.nextToken()
-
 	regex := p.peekToken.Literal
-
 	p.l.ExpectRegex = false
+	if doubleBacktrack {
+		p.nextToken()
+		p.nextToken()
+	}
 
 	for !p.curTokenIs(token.SLASH) {
 		p.nextToken()
