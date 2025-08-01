@@ -366,7 +366,7 @@ func (i *Interpreter) doIfStatement(stmt *ast.IfStatement) {
 			break
 		}
 	}
-	if shouldExecuteElse {
+	if shouldExecuteElse && stmt.Else != nil {
 		i.doBlock(stmt.Else)
 	}
 }
