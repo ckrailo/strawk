@@ -64,6 +64,9 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 	i.StdLibFunctions["sub"] = Sub
 	i.StdLibFunctions["gsub"] = Gsub
 	i.StdLibFunctions["split"] = Split
+	i.StdLibFunctions["toupper"] = ToUpper
+	i.StdLibFunctions["tolower"] = ToLower
+	i.StdLibFunctions["substr"] = Substr
 	return i
 }
 
@@ -834,15 +837,27 @@ func (i *Interpreter) doGreaterThanEqualTo(left ast.Expression, right ast.Expres
 }
 
 func (i *Interpreter) doLessThan(left ast.Expression, right ast.Expression) ast.Expression {
-	lhs := convertLiteralForStringOp(left)
-	rhs := convertLiteralForStringOp(right)
-	return boolToExpression(lhs < rhs)
+	lhs_float, lerr := convertLiteralForComparisonOp(left)
+	rhs_float, rerr := convertLiteralForComparisonOp(right)
+	if lerr == nil && rerr == nil {
+		return boolToExpression(lhs_float < rhs_float)
+	}
+
+	lhs_str := convertLiteralForStringOp(left)
+	rhs_str := convertLiteralForStringOp(right)
+	return boolToExpression(lhs_str < rhs_str)
 }
 
 func (i *Interpreter) doLessThanEqualTo(left ast.Expression, right ast.Expression) ast.Expression {
-	lhs := convertLiteralForStringOp(left)
-	rhs := convertLiteralForStringOp(right)
-	return boolToExpression(lhs <= rhs)
+	lhs_float, lerr := convertLiteralForComparisonOp(left)
+	rhs_float, rerr := convertLiteralForComparisonOp(right)
+	if lerr == nil && rerr == nil {
+		return boolToExpression(lhs_float <= rhs_float)
+	}
+
+	lhs_str := convertLiteralForStringOp(left)
+	rhs_str := convertLiteralForStringOp(right)
+	return boolToExpression(lhs_str <= rhs_str)
 }
 
 func ExpressionToBool(expr ast.Expression) bool {

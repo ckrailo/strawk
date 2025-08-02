@@ -70,7 +70,7 @@ func Sub(i *Interpreter, args []ast.Expression) ast.Expression {
 	if found != "" {
 		replaced = strings.Replace(in.String(), found, args[1].String(), 1)
 	}
-	return &ast.StringLiteral{Value: replaced}
+	return ast.NewLiteral(replaced)
 }
 
 func Gsub(i *Interpreter, args []ast.Expression) ast.Expression {
@@ -110,7 +110,7 @@ func Gsub(i *Interpreter, args []ast.Expression) ast.Expression {
 	}
 
 	replaced := re.ReplaceAllString(in.String(), args[1].String())
-	return &ast.StringLiteral{Value: replaced}
+	return ast.NewLiteral(replaced)
 }
 
 func Split(i *Interpreter, args []ast.Expression) ast.Expression {
@@ -137,4 +137,100 @@ func Split(i *Interpreter, args []ast.Expression) ast.Expression {
 		ret[strconv.Itoa(idx+1)] = &ast.StringLiteral{Value: split}
 	}
 	return &ast.AssociativeArray{Array: ret}
+}
+
+func ToLower(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) != 1 {
+		panic("Incorrect arguments to function split")
+	}
+
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function tolower is not a scalar.")
+	}
+	ret := strings.ToLower(args[0].String())
+	return ast.NewLiteral(ret)
+}
+
+func ToUpper(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) != 1 {
+		panic("Incorrect arguments to function split")
+	}
+
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function toupper is not a scalar.")
+	}
+	ret := strings.ToUpper(args[0].String())
+	return ast.NewLiteral(ret)
+}
+
+func Substr(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) < 2 || len(args) > 3 {
+		panic("Incorrect number of arguments to function substr")
+	}
+
+	var s string
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function substr is not a scalar.")
+	}
+	s = args[0].String()
+
+	var m int
+	switch args[1].(type) {
+	case *ast.StringLiteral:
+		val, err := strconv.Atoi(args[1].String())
+		if err != nil {
+			panic("second argument to function substr is not an integer.")
+		}
+		m = val
+	case *ast.NumericLiteral:
+		val := args[1].(*ast.NumericLiteral).Value
+		if val == float64(int(val)) {
+			m = int(val)
+		} else {
+			panic("second argument to function substr is not an integer.")
+		}
+	default:
+		panic("second argument to function substr is not a scalar.")
+	}
+
+	var n int
+	if len(args) == 2 {
+		n = -1
+	} else {
+		switch args[2].(type) {
+		case *ast.StringLiteral:
+			val, err := strconv.Atoi(args[2].String())
+			if err != nil {
+				panic("second argument to function substr is not an integer.")
+			}
+			n = val
+		case *ast.NumericLiteral:
+			val := args[2].(*ast.NumericLiteral).Value
+			if val == float64(int(val)) {
+				n = int(val)
+			} else {
+				panic("second argument to function substr is not an integer.")
+			}
+		default:
+			panic("second argument to function substr is not a scalar.")
+		}
+	}
+
+	if m >= len(s) {
+		return ast.NewLiteral("")
+	}
+	if m+n >= len(s) || n == -1 {
+		return ast.NewLiteral(s[m:])
+	}
+
+	return ast.NewLiteral(s[m : m+n])
 }
