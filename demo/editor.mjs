@@ -10,15 +10,14 @@ import {LanguageSupport} from "@codemirror/language"
 export const parserWithMetadata = parser.configure({
   props: [
     styleTags({
-      "BEGIN END do while continue print next if else break length sub gsub split" : t.keyword,
+      "BEGIN END do while continue print next if else break length sub gsub split toupper tolower substr" : t.keyword,
       identifier: t.tagName,
       stateidentifier: t.variableName,
       String: t.string,
       Regex: t.regexp,
       Boolean: t.bool,
       String: t.string,
-      LineComment: t.lineComment,
-      "( )": t.paren
+      LineComment: t.lineComment
     }),
     indentNodeProp.add({
       Application: context => context.column(context.node.from) + context.unit
