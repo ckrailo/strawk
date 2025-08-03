@@ -26358,7 +26358,7 @@ var cm6 = (function (exports) {
   const parserWithMetadata = parser.configure({
     props: [
       styleTags({
-        "BEGIN END do while continue print next if else break length sub gsub split toupper tolower substr" : tags.keyword,
+        "BEGIN END do while for in continue print next if else break length sub gsub split toupper tolower substr" : tags.keyword,
         identifier: tags.tagName,
         stateidentifier: tags.variableName,
         String: tags.string,

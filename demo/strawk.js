@@ -10,6 +10,9 @@ const paragraphsInput ='Sunt molestias autem doloremque. Sed ut doloremque occae
 const mockingSpongebob ='BEGIN { \n   sentence = 0\n}\n\n# Matches each sentence\n/(?s)(.*)\\./ { \n  sentence++\n  s = sub(/\\n/, "", $1) #Remove newlines\n  if sentence == 4 {\n    new_sentence = ""\n    for (char = 0; char < length(s); char++) {\n      if char % 2  == 0 {\n        c = toupper(substr(s, char, 1))\n      } else {\n        c = tolower(substr(s, char, 1))\n      }\n      new_sentence = new_sentence c # Concatenates new_sentence and c\n    }\n    print new_sentence\n  }\n}\n';
 const mockingSpongebobInput = "Sunt molestias autem doloremque. Sed ut doloremque occaecati quo est quam numquam exercitationem suscipit et. \nAd enim voluptatem consequatur vitae quis. Maxime quasi magni velit eius nam aut esse voluptatibus quis velit \nrepellendus. Temporibus facilis ut porro deleniti excepturi quas alias placeat. Numquam minus aut doloribus \nfugit magni dolorum. Omnis ut minus rem quo est qui voluptate iste impedit. Vel impedit qui qui sit explicabo \nassumenda recusandae voluptatem quia animi.\n";
 
+const captureGroups ='# If a regex is matched, the full value is put in $0 and each capture group in $1, $2...\n/Name: (.*)\\nFavorite Food: (.*)\\n?/ {\n   print $1, $2\n   if ($2 in foods) {\n     foods[$2] += 1\n   } else {\n     foods[$2] = 1\n   }\n}\n\nEND {\n   count, mostpopular = 0, ""\n   for (food in foods) {\n     if foods[food] > count {\n       count = foods[food]\n       mostpopular = food\n     }\n   }\n   print "The most popular food is:", mostpopular\n}\n';
+const captureGroupsInput ='Name: Bob\nFavorite Food: Apple\n\nName: Alice\nFavorite Food: Banana\n\nName: Pam\nFavorite Food: Orange\n\nName: George\nFavorite Food: Banana';
+
 const fsastate = cm6.createEditorStateForStrawk(introduction);
 const fsaed = cm6.createEditorView(fsastate, document.getElementById("strawkeditor"));
 const inputstate = cm6.createEditorState(introductioninput);
