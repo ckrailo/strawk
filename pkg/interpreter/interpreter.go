@@ -514,11 +514,6 @@ func (i *Interpreter) doExpression(expr ast.Expression) ast.Expression {
 
 func (i *Interpreter) doPrefixExpression(expression *ast.PrefixExpression) ast.Expression {
 
-	switch expression.Right.(type) {
-	case *ast.ArrayIndexExpression:
-		panic("attempt to prefix array")
-	}
-
 	switch expression.Operator {
 	case "!":
 		return invertBool(i.doExpression(expression.Right))

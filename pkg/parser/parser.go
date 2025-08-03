@@ -684,8 +684,22 @@ func (p *Parser) parseArrayIndexExpression(expr ast.Expression) ast.Expression {
 	}
 	p.nextToken()
 	indicies := p.parseExpressionList()
+	arrayIndexExpression := &ast.ArrayIndexExpression{ArrayName: id, IndexList: indicies}
+
+	if p.peekTokenIs(token.INCREMENT) {
+		expr := &ast.PostfixExpression{Left: arrayIndexExpression, Operator: p.peekToken.Literal}
+		p.nextToken()
+		p.nextToken()
+		return expr
+	} else if p.peekTokenIs(token.DECREMENT) {
+		expr := &ast.PostfixExpression{Left: arrayIndexExpression, Operator: p.peekToken.Literal}
+		p.nextToken()
+		p.nextToken()
+		return expr
+	}
+
 	p.nextToken()
-	return &ast.ArrayIndexExpression{ArrayName: id, IndexList: indicies}
+	return arrayIndexExpression
 }
 
 func (p *Parser) parseArrayMembershipExpression(left ast.Expression) ast.Expression {
