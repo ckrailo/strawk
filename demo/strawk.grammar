@@ -36,6 +36,7 @@ IfStatement { kw<"if"> Expression Block (kw<"else"> kw<"if"> Expression Block)* 
 PrintStatement { kw<"print"> Expression (',' Expression)* }
 DeleteStatement { kw<"delete"> Expression }
 AssignStatement { 
+  identifier ( ',' identifier)* '=' Expression (',' Expression)* |
   identifier ModifyAndAssignOperators identifier
 }
 
@@ -43,35 +44,34 @@ Expression {
   Prefix | Expression !inf InfixOperator Expression | StdLibCall '(' Expression? (',' Expression)* ')'
 }
 
-StdLibCall {kw<"length"> | kw<"sub"> | kw<"gsub"> | kw<"split"> | kw<"toupper"> | kw<"tolower"> | kw<"substr">}
+StdLibCall {kw<"length"> | kw<"sub"> | kw<"gsub"> | kw<"split"> | kw<"tolower"> | kw<"toupper"> | kw<"substr"> }
 
-Prefix { !inf PrefixOp? identifier !inf PrefixOp? | String | Number | '-' | '!'  }
+Prefix { !inf PrefixOp? identifier !inf PrefixOp? | String | Number | '-' | '!' }
 
 kw<term> { @specialize[@name={term}]<identifier, term> }
 
-@skip { LineComment }
+@skip { space | LineComment }
 
-String[isolate] {
-    '"' (stringContentDouble )* '"' |
-    "'" (stringContentSingle )* "'"
-  }
 
 
 @tokens {
-  stringContentSingle { ![\\\n']+ }
-  stringContentDouble { ![\\\n"]+ }
+  String[isolate] {
+    '"' ( ![\\\n"])* '"' |
+    "'" (![\\\n'] )* "'"
+  }
   stateidentifier[@export] { $[0-9a-zA-Z_]+ } 
   Regex { "/" (![\n]* "/" | ![\n]* "/" ![\n]* "/")+}
   identifier[@export] { $[0-9a-zA-Z_$@]+ } 
   Colon { ":" }
   InfixOperator { '+'| '*'| '%'| '^'| '&&'| '||'}
   PrefixOp { '++' | '--' }
-  ModifyAndAssignOperators { '='| '+='| '-='| '*='| '/='| '%='| '^='}
+  ModifyAndAssignOperators { '+='| '-='| '*='| '/='| '%='| '^='}
   LeftBrace { "{" }
   RightBrace { "}" }
   Name { '$'?@asciiLetter+ }
   Number { @digit+ }
+  space { @whitespace+ }
   LineComment { "#" ![\n]* }
-  @precedence { Regex, stringContentSingle, stringContentDouble, LineComment, Number, identifier}
+  @precedence { Regex, LineComment, space,  Number, identifier}
 }
 
