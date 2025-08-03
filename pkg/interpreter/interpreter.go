@@ -904,7 +904,7 @@ func (i *Interpreter) doArrayMembership(left ast.Expression, right ast.Expressio
 	case *ast.AssociativeArray:
 		m = right.(*ast.AssociativeArray).Array
 	default:
-		panic("membership test against non-array")
+		return boolToExpression(false)
 	}
 	_, ok := m[key]
 	return boolToExpression(ok)
