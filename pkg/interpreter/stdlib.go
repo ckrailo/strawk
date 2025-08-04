@@ -156,7 +156,7 @@ func ToLower(i *Interpreter, args []ast.Expression) ast.Expression {
 
 func ToUpper(i *Interpreter, args []ast.Expression) ast.Expression {
 	if len(args) != 1 {
-		panic("Incorrect arguments to function split")
+		panic("Incorrect arguments to function toupper")
 	}
 
 	switch args[0].(type) {
@@ -233,4 +233,28 @@ func Substr(i *Interpreter, args []ast.Expression) ast.Expression {
 	}
 
 	return ast.NewLiteral(s[m : m+n])
+}
+
+func Index(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) != 2 {
+		panic("Incorrect number of arguments to function index")
+	}
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function index is not a scalar.")
+	}
+	if len(args) != 2 {
+		panic("Incorrect number of arguments to function index")
+	}
+
+	switch args[1].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("second argument to function index is not a scalar.")
+	}
+	ret := strings.Index(args[0].String(), args[1].String())
+	return ast.NewLiteral(strconv.Itoa(ret))
 }

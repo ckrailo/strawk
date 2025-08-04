@@ -67,6 +67,7 @@ func NewInterpreter(program *ast.Program, out io.Writer) *Interpreter {
 	i.StdLibFunctions["toupper"] = ToUpper
 	i.StdLibFunctions["tolower"] = ToLower
 	i.StdLibFunctions["substr"] = Substr
+	i.StdLibFunctions["index"] = Index
 	return i
 }
 
