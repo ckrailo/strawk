@@ -44,7 +44,7 @@ Expression {
   Prefix | Expression !inf InfixOperator Expression | StdLibCall '(' Expression? (',' Expression)* ')'
 }
 
-StdLibCall {kw<"length"> | kw<"sub"> | kw<"gsub"> | kw<"split"> | kw<"tolower"> | kw<"toupper"> | kw<"substr"> }
+StdLibCall {kw<"length"> | kw<"sub"> | kw<"gsub"> | kw<"split"> | kw<"tolower"> | kw<"toupper"> | kw<"substr"> | kw<"match"> | kw<"index"> }
 
 Prefix { !inf PrefixOp? identifier !inf PrefixOp? | String | Number | '-' | '!' }
 

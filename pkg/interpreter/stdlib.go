@@ -245,9 +245,6 @@ func Index(i *Interpreter, args []ast.Expression) ast.Expression {
 	default:
 		panic("first argument to function index is not a scalar.")
 	}
-	if len(args) != 2 {
-		panic("Incorrect number of arguments to function index")
-	}
 
 	switch args[1].(type) {
 	case *ast.StringLiteral:
@@ -257,4 +254,32 @@ func Index(i *Interpreter, args []ast.Expression) ast.Expression {
 	}
 	ret := strings.Index(args[0].String(), args[1].String())
 	return ast.NewLiteral(strconv.Itoa(ret))
+}
+
+func Match(i *Interpreter, args []ast.Expression) ast.Expression {
+	if len(args) != 2 {
+		panic("Incorrect number of arguments to function match")
+	}
+	switch args[0].(type) {
+	case *ast.StringLiteral:
+	case *ast.NumericLiteral:
+	default:
+		panic("first argument to function match is not a scalar.")
+	}
+
+	switch args[1].(type) {
+	case *ast.RegexLiteral:
+	default:
+		panic("second argument to function match is not a regex")
+	}
+
+	re, err := regexp.Compile(args[0].(*ast.RegexLiteral).Value)
+	if err != nil {
+		panic("Second argument to function match not a valid regex")
+	}
+	loc := re.FindStringIndex(args[0].String())
+	if loc == nil {
+		return ast.NewLiteral(strconv.Itoa(-1))
+	}
+	return ast.NewLiteral(strconv.Itoa(loc[0]))
 }
