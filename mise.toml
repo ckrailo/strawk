@@ -1,0 +1,6 @@
+[tools]
+node = "23"
+
+[tasks.build]
+description = "Build the javascript bundle"
+run = "npm run build"
